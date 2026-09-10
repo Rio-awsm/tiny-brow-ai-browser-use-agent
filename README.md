@@ -8,9 +8,9 @@ name, and the agent runs on whatever OpenAI-compatible endpoint answers — Groq
 OpenRouter, Google AI Studio, LiteLLM, a local LM Studio server, or anything else
 speaking the same wire format.
 
-> **Status: M0.** Only the test suite and the scoring harness exist. There is no
-> extension and no agent yet. Every task reports `not_implemented`, on purpose —
-> see [Where this is](#where-this-is).
+> **Status: M1.** The extension shell exists — side panel, background worker,
+> content script, and messaging between them. There is no CDP access and no agent
+> yet, so every harness task still reports `not_implemented`, on purpose.
 
 ## Where this is
 
@@ -19,12 +19,36 @@ The build runs through sixteen gated milestones (`docs/browser-agent-build-guide
 | | Milestone | State |
 |---|---|---|
 | M0 | Test suite + scoring harness | **done** |
-| M1 | Extension scaffold, side panel | next |
-| M2 | CDP attach, first screenshot | |
+| M1 | Extension scaffold, side panel | **done** |
+| M2 | CDP attach, first screenshot | next |
 | M3–M6 | DOM indexer, overlays, manual actuation | |
 | M7–M10 | Provider layer, agent loop, provider matrix | |
 | M11–M14 | Compression, repair, safety gate, router | |
 | M15 | Packaging and release | |
+
+## Running the extension
+
+```bash
+npm install
+npm run dev        # launches a dev-profile Chrome with the extension loaded
+```
+
+Click the tiny-brow toolbar icon to open the side panel. Three probe buttons at the
+bottom exercise the messaging paths the agent will use:
+
+| Probe | Path |
+|---|---|
+| **Ping** | panel → background → panel, with the round-trip time |
+| **Tab** | panel → background → `chrome.tabs`, refreshes the header |
+| **Page** | panel → background → content script → back |
+
+To load a production build manually instead: `npm run build`, then
+`chrome://extensions` → Developer mode → Load unpacked → `.output/chrome-mv3`.
+
+**The agent loop will live in the side panel, not the background service worker.**
+MV3 kills idle service workers after ~30 seconds, and a 40-step run would die
+mid-task. The panel page stays alive as long as it is open. Background exists only
+to own the CDP connection and relay messages.
 
 ## The test suite
 
@@ -95,13 +119,25 @@ user who installs it. `.env` is for the Node-side scoring harness only.
 
 `npm run check:secrets` enforces this mechanically rather than by convention: it
 fails the build if extension source reads `import.meta.env` or `process.env`,
-imports from `harness/`, or if any tracked file contains a key-shaped literal.
+imports from `harness/`, or if any tracked file contains a key-shaped literal. It
+also scans `.output/` when a build is present, since the shipped bundle is what
+the claim is actually about.
 
 Keys are sent only to the endpoint you configure, and nowhere else.
 
 ## Layout
 
 ```
+src/
+  entrypoints/
+    background/       service worker: panel behaviour, message relay
+    content/          injected into every page; probes and, later, overlays
+    sidepanel/        the React panel — where the agent loop will live
+  components/         panel UI
+    ui/               shadcn-style primitives
+  lib/                messaging protocol, zustand store, utils
+  styles/theme.css    OKLCH design tokens, light and dark
+
 tasks.md              the ten tasks — the finish line
 harness/
   types.ts            the contract; failure taxonomy; the AgentDriver seam
@@ -116,6 +152,10 @@ scripts/
 docs/
   browser-agent-build-guide.md
 ```
+
+## Stack
+
+WXT (MV3, Vite), React 19, TypeScript, Tailwind v4, Zustand, Radix primitives.
 
 ## Requirements
 

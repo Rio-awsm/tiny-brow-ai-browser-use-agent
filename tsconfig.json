@@ -1,26 +1,17 @@
 {
+  "extends": "./.wxt/tsconfig.json",
   "compilerOptions": {
-    "target": "ES2023",
-    "lib": ["ES2023", "DOM", "DOM.Iterable"],
-    "module": "ESNext",
-    "moduleResolution": "bundler",
-    "types": ["node"],
-
+    "jsx": "react-jsx",
     "strict": true,
-    "noUncheckedIndexedAccess": false,
-    "noImplicitOverride": true,
-    "noFallthroughCasesInSwitch": true,
-    "exactOptionalPropertyTypes": false,
-
-    "verbatimModuleSyntax": true,
-    "allowImportingTsExtensions": true,
-    "noEmit": true,
-    "skipLibCheck": true,
-    "esModuleInterop": true,
-    "forceConsistentCasingInFileNames": true,
-    "resolveJsonModule": true,
-    "isolatedModules": true
+    "noUnusedLocals": true,
+    "noUnusedParameters": true
   },
-  "include": ["harness/**/*.ts", "scripts/**/*.ts"],
-  "exclude": ["node_modules", ".output", ".wxt", "dist"]
+  "include": [
+    ".wxt/wxt.d.ts",
+    "src/**/*.ts",
+    "src/**/*.tsx",
+    "wxt.config.ts",
+    "components.json"
+  ],
+  "exclude": ["node_modules", ".output", "dist", "harness", "scripts"]
 }

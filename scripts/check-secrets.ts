@@ -10,7 +10,8 @@
  * Three rules:
  *   1. Extension source must not read `import.meta.env` or `process.env`.
  *   2. Extension source must not import from `harness/` (which does read .env).
- *   3. No file may contain a live-looking key literal.
+ *   3. No file may contain a live-looking key literal — including the built
+ *      bundle in .output/, which is the artifact the claim is actually about.
  */
 
 import { readdirSync, readFileSync, statSync } from "node:fs";
@@ -20,14 +21,7 @@ import { extname, join, relative, sep } from "node:path";
 const EXTENSION_DIRS = ["entrypoints", "src", "components"];
 
 /** Never scanned. */
-const IGNORED = new Set([
-  "node_modules",
-  ".git",
-  ".wxt",
-  ".output",
-  "dist",
-  "harness-results",
-]);
+const IGNORED = new Set(["node_modules", ".git", ".wxt", "dist", "harness-results"]);
 
 const SOURCE_EXT = new Set([".ts", ".tsx", ".js", ".jsx", ".mjs", ".cjs", ".svelte", ".vue"]);
 
@@ -88,7 +82,9 @@ const KEY_PATTERNS: Array<[string, RegExp]> = [
   ["Google API key", /\bAIza[A-Za-z0-9_-]{30,}/],
 ];
 
-const SCAN_DIRS = [".", ...EXTENSION_DIRS];
+// The built bundle is scanned when present: that is what ships, and it is the
+// only place an inlined key would actually show up.
+const SCAN_DIRS = [".", ...EXTENSION_DIRS, ".output"];
 const seen = new Set<string>();
 for (const dir of SCAN_DIRS) {
   for (const file of walk(join(root, dir))) {
@@ -97,7 +93,8 @@ for (const dir of SCAN_DIRS) {
     seen.add(rel);
     // .env is gitignored and is the one place a real key legitimately lives.
     if (rel === ".env" || rel.startsWith(`.env${sep}`)) continue;
-    if (!SOURCE_EXT.has(extname(file)) && ![".json", ".md", ".html", ".example", ""].includes(extname(file))) {
+    const ext = extname(file);
+    if (!SOURCE_EXT.has(ext) && ![".json", ".md", ".html", ".css", ".example", ""].includes(ext)) {
       continue;
     }
     let content: string;
