@@ -1,0 +1,73 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="880" height="300" viewBox="0 0 880 300" role="img" aria-label="Tiny — a bring-your-own-key browser agent that lives in a side panel and drives the current tab.">
+  <defs>
+    <clipPath id="card"><rect width="880" height="300" rx="18"/></clipPath>
+    <style>
+      .wordmark { font: 700 62px ui-sans-serif, -apple-system, "Segoe UI", Roboto, sans-serif; fill: #f3f6f9; letter-spacing: -1.5px; }
+      .tag      { font: 400 16px ui-sans-serif, -apple-system, "Segoe UI", Roboto, sans-serif; fill: #94a6b8; }
+      .kicker   { font: 600 11.5px ui-monospace, SFMono-Regular, Menlo, monospace; fill: #2dd4bf; letter-spacing: 1.6px; }
+      .num      { font: 600 10px ui-monospace, SFMono-Regular, Menlo, monospace; fill: #0b1220; }
+      .chip     { font: 400 11px ui-monospace, SFMono-Regular, Menlo, monospace; fill: #6d8296; }
+    </style>
+  </defs>
+
+  <g clip-path="url(#card)">
+    <rect width="880" height="300" fill="#0b1220"/>
+    <circle cx="792" cy="-40" r="210" fill="#12c2a0" opacity="0.07"/>
+    <circle cx="120" cy="330" r="170" fill="#12c2a0" opacity="0.05"/>
+
+    <!-- mark: the browser frame with a pointer inside, same as the toolbar icon -->
+    <g transform="translate(56, 58) scale(2.05)">
+      <rect x="3.1" y="4.5" width="17.8" height="15" rx="3" fill="none" stroke="#2dd4bf" stroke-width="1.7"/>
+      <path d="M3.95 8.2V7.5a2.15 2.15 0 0 1 2.15-2.15h11.8A2.15 2.15 0 0 1 20.05 7.5v.7z" fill="#2dd4bf"/>
+      <path d="M8.8 9.2v7.81l2.04-1.97 1.15 2.51 1.65-.76-1.17-2.52 2.82-.34z" fill="#2dd4bf"/>
+    </g>
+
+    <text class="kicker" x="118" y="78">BRING YOUR OWN KEY</text>
+    <text class="wordmark" x="115" y="140">Tiny</text>
+    <text class="tag" x="118" y="176">A browser agent that lives in a side panel</text>
+    <text class="tag" x="118" y="200">and drives the tab you are already looking at.</text>
+
+    <g transform="translate(118, 228)">
+      <rect width="112" height="26" rx="13" fill="#16233a"/>
+      <text class="chip" x="17" y="17">Chrome · MV3</text>
+      <rect x="122" width="104" height="26" rx="13" fill="#16233a"/>
+      <text class="chip" x="139" y="17">No vendor SDK</text>
+      <rect x="236" width="96" height="26" rx="13" fill="#16233a"/>
+      <text class="chip" x="253" y="17">No servers</text>
+    </g>
+
+    <!-- what it sees: a page reduced to numbered, clickable elements -->
+    <g transform="translate(508, 48)">
+      <rect width="316" height="204" rx="12" fill="#111c2e" stroke="#1f3049"/>
+      <rect width="316" height="30" rx="12" fill="#16233a"/>
+      <rect y="18" width="316" height="12" fill="#16233a"/>
+      <circle cx="20" cy="15" r="4" fill="#283b56"/>
+      <circle cx="36" cy="15" r="4" fill="#283b56"/>
+      <circle cx="52" cy="15" r="4" fill="#283b56"/>
+      <rect x="70" y="8" width="226" height="14" rx="7" fill="#0e1829"/>
+
+      <g stroke="#2dd4bf" fill="none">
+        <rect x="22" y="50" width="164" height="22" rx="5"/>
+        <rect x="196" y="50" width="52" height="22" rx="5"/>
+        <rect x="22" y="94" width="120" height="16" rx="4" opacity="0.65"/>
+        <rect x="22" y="126" width="272" height="52" rx="6" opacity="0.65"/>
+      </g>
+
+      <g>
+        <rect x="16" y="44" width="15" height="13" rx="3" fill="#2dd4bf"/>
+        <text class="num" x="20" y="54">0</text>
+        <rect x="190" y="44" width="15" height="13" rx="3" fill="#2dd4bf"/>
+        <text class="num" x="194" y="54">1</text>
+        <rect x="16" y="88" width="15" height="13" rx="3" fill="#2dd4bf" opacity="0.7"/>
+        <text class="num" x="20" y="98">2</text>
+        <rect x="16" y="120" width="15" height="13" rx="3" fill="#2dd4bf" opacity="0.7"/>
+        <text class="num" x="20" y="130">3</text>
+      </g>
+
+      <g transform="translate(214, 58)">
+        <circle r="13" fill="#2dd4bf" opacity="0.18"/>
+        <path d="M0 0v11.5l3-2.9 1.7 3.7 2.4-1.1-1.7-3.7 4.1-.5z" fill="#f3f6f9"/>
+      </g>
+    </g>
+  </g>
+</svg>
