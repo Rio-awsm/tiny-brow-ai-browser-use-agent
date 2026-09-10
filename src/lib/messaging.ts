@@ -1,3 +1,5 @@
+import type { CdpStatus, Screenshot } from "./cdp-types";
+
 export interface TabInfo {
   id: number;
   url: string;
@@ -14,7 +16,11 @@ export interface PageProbe {
 export type PanelMessage =
   | { kind: "ping"; sentAt: number }
   | { kind: "activeTab" }
-  | { kind: "probePage" };
+  | { kind: "probePage" }
+  | { kind: "cdpStatus" }
+  | { kind: "cdpAttach" }
+  | { kind: "cdpDetach" }
+  | { kind: "cdpScreenshot" };
 
 export type ContentMessage = { kind: "probePage" };
 
@@ -22,9 +28,29 @@ export type PanelReply =
   | { ok: true; kind: "pong"; sentAt: number; receivedAt: number }
   | { ok: true; kind: "activeTab"; tab: TabInfo | null }
   | { ok: true; kind: "probePage"; probe: PageProbe }
+  | { ok: true; kind: "cdpStatus"; status: CdpStatus }
+  | { ok: true; kind: "cdpScreenshot"; status: CdpStatus; shot: Screenshot }
   | { ok: false; error: string };
 
 export const CONTENT_READY = "tiny-brow:content-ready";
+
+const PANEL_KINDS: PanelMessage["kind"][] = [
+  "ping",
+  "activeTab",
+  "probePage",
+  "cdpStatus",
+  "cdpAttach",
+  "cdpDetach",
+  "cdpScreenshot",
+];
+
+export function isPanelMessage(msg: unknown): msg is PanelMessage {
+  return (
+    typeof msg === "object" &&
+    msg !== null &&
+    PANEL_KINDS.includes((msg as PanelMessage).kind)
+  );
+}
 
 export async function sendToBackground(msg: PanelMessage): Promise<PanelReply> {
   try {

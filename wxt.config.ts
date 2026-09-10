@@ -10,7 +10,7 @@ export default defineConfig({
       "A bring-your-own-key browser agent that drives the current tab from a side panel.",
     // sidePanel is added by WXT because a sidepanel entrypoint exists.
     // tabs and scripting are added in dev for hot reload.
-    permissions: ["storage", "tabs", "activeTab"],
+    permissions: ["storage", "tabs", "activeTab", "debugger"],
     action: {
       default_title: "Open tiny-brow",
     },

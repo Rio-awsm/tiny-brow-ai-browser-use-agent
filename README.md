@@ -8,9 +8,9 @@ name, and the agent runs on whatever OpenAI-compatible endpoint answers — Groq
 OpenRouter, Google AI Studio, LiteLLM, a local LM Studio server, or anything else
 speaking the same wire format.
 
-> **Status: M1.** The extension shell exists — side panel, background worker,
-> content script, and messaging between them. There is no CDP access and no agent
-> yet, so every harness task still reports `not_implemented`, on purpose.
+> **Status: M2.** The panel has privileged access to the page: it attaches over the
+> Chrome DevTools Protocol and captures live screenshots. There is no DOM indexer
+> and no agent yet, so every harness task still reports `not_implemented`.
 
 ## Where this is
 
@@ -20,8 +20,9 @@ The build runs through sixteen gated milestones (`docs/browser-agent-build-guide
 |---|---|---|
 | M0 | Test suite + scoring harness | **done** |
 | M1 | Extension scaffold, side panel | **done** |
-| M2 | CDP attach, first screenshot | next |
-| M3–M6 | DOM indexer, overlays, manual actuation | |
+| M2 | CDP attach, first screenshot | **done** |
+| M3 | The DOM indexer | next |
+| M4–M6 | Overlays, manual actuation, cursor | |
 | M7–M10 | Provider layer, agent loop, provider matrix | |
 | M11–M14 | Compression, repair, safety gate, router | |
 | M15 | Packaging and release | |
@@ -42,6 +43,16 @@ bottom exercise the messaging paths the agent will use:
 | **Tab** | panel → background → `chrome.tabs`, refreshes the header |
 | **Page** | panel → background → content script → back |
 
+The **Viewport** card drives the debugger:
+
+| Control | What it does |
+|---|---|
+| **Attach** | Opens a pinned CDP session and enables the `Page` and `Runtime` domains |
+| **Detach** | Closes it; the yellow banner disappears |
+| **Capture** | `Page.captureScreenshot`. Attaches first if needed, and detaches again afterwards so a one-shot never leaves the banner up |
+
+Click a capture to enlarge it.
+
 To load a production build manually instead: `npm run build`, then
 `chrome://extensions` → Developer mode → Load unpacked → `.output/chrome-mv3`.
 
@@ -49,6 +60,49 @@ To load a production build manually instead: `npm run build`, then
 MV3 kills idle service workers after ~30 seconds, and a 40-step run would die
 mid-task. The panel page stays alive as long as it is open. Background exists only
 to own the CDP connection and relay messages.
+
+### The debugging banner
+
+While attached, Chrome shows a yellow "extension is debugging this browser" banner
+across the top of the tab. **It cannot be suppressed** — every extension in this
+category lives with it. Detaching removes it.
+
+CDP inside the user's own browser, with their real cookies and logins, is the whole
+reason this is an extension rather than a Puppeteer script. The banner is the price.
+
+### Pages Chrome will not let us touch
+
+`chrome://`, `chrome-extension://`, `devtools://`, `about:`, `view-source:` and the
+Chrome Web Store all reject debugger attachment, and local files need "Allow access
+to file URLs". The URL is checked before attaching so the panel can say which of
+those applies, rather than surfacing Chrome's generic refusal.
+
+Only one debugger may attach per tab, so opening DevTools on the attached tab takes
+the session away. That arrives as `onDetach`, and the panel reports what happened.
+
+### Why session state is not held in memory
+
+MV3 evicts the background service worker after ~30 seconds idle, taking any
+module-level state with it — while Chrome's debugger session, and its banner, stay
+up. A record kept only in memory therefore reports `detached` on a tab that is still
+attached, so Detach is never offered for the session that is actually holding the
+banner.
+
+So the record lives in `chrome.storage.session`, which outlives the worker, and
+`chrome.debugger.getTargets()` is treated as the authority on what is genuinely
+attached. The stored record only answers whether a live session is *ours*. The panel
+re-reads both every 2.5s, and `detach()` verifies against Chrome rather than assuming
+success.
+
+When Chrome reports a debugger the extension did not open, the badge reads
+`external` — that is DevTools, another extension, or a session orphaned by a worker
+restart. Detach will try to release it.
+
+To check the ground truth yourself, run this in the background worker console:
+
+```js
+(await chrome.debugger.getTargets()).filter(t => t.attached)
+```
 
 ## The test suite
 
@@ -130,12 +184,13 @@ Keys are sent only to the endpoint you configure, and nowhere else.
 ```
 src/
   entrypoints/
-    background/       service worker: panel behaviour, message relay
+    background/       service worker: message relay
+      cdp.ts          the CDP session: attach, detach, screenshot, lifecycle
     content/          injected into every page; probes and, later, overlays
     sidepanel/        the React panel — where the agent loop will live
   components/         panel UI
     ui/               shadcn-style primitives
-  lib/                messaging protocol, zustand store, utils
+  lib/                messaging protocol, CDP types, zustand store, utils
   styles/theme.css    OKLCH design tokens, light and dark
 
 tasks.md              the ten tasks — the finish line

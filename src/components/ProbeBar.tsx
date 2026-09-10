@@ -1,10 +1,5 @@
 import { Eraser, MousePointerClick, RefreshCw, Zap } from "lucide-react";
-import { Button } from "@/components/ui/button";
-import {
-  Tooltip,
-  TooltipContent,
-  TooltipTrigger,
-} from "@/components/ui/tooltip";
+import { TooltipButton } from "@/components/ui/tooltip-button";
 
 interface Props {
   busy: boolean;
@@ -25,50 +20,42 @@ export function ProbeBar({
 }: Props) {
   return (
     <div className="flex items-center gap-1.5 border-t border-border bg-surface/60 px-3 py-2">
-      <Probe label="Round-trip a message through the background worker" onClick={onPing} disabled={busy}>
+      <TooltipButton
+        tip="Round-trip a message through the background worker"
+        variant="outline"
+        size="sm"
+        onClick={onPing}
+        disabled={busy}
+      >
         <Zap />
         Ping
-      </Probe>
-      <Probe label="Re-read the active tab" onClick={onRefreshTab} disabled={busy}>
+      </TooltipButton>
+      <TooltipButton tip="Re-read the active tab" variant="outline" size="sm" onClick={onRefreshTab} disabled={busy}>
         <RefreshCw />
         Tab
-      </Probe>
-      <Probe label="Ask the content script what it can see" onClick={onProbePage} disabled={busy}>
+      </TooltipButton>
+      <TooltipButton
+        tip="Ask the content script what it can see"
+        variant="outline"
+        size="sm"
+        onClick={onProbePage}
+        disabled={busy}
+      >
         <MousePointerClick />
         Page
-      </Probe>
+      </TooltipButton>
 
-      <Tooltip>
-        <TooltipTrigger asChild>
-          <Button
-            variant="ghost"
-            size="icon"
-            onClick={onClear}
-            disabled={!hasLog}
-            className="ml-auto"
-          >
-            <Eraser />
-          </Button>
-        </TooltipTrigger>
-        <TooltipContent side="top">Clear log</TooltipContent>
-      </Tooltip>
+      <TooltipButton
+        tip="Clear log"
+        variant="ghost"
+        size="icon"
+        onClick={onClear}
+        disabled={!hasLog}
+        className="ml-auto"
+      >
+        <Eraser />
+      </TooltipButton>
     </div>
   );
 }
 
-function Probe({
-  label,
-  children,
-  ...props
-}: { label: string } & React.ComponentProps<typeof Button>) {
-  return (
-    <Tooltip>
-      <TooltipTrigger asChild>
-        <Button variant="outline" size="sm" {...props}>
-          {children}
-        </Button>
-      </TooltipTrigger>
-      <TooltipContent side="top">{label}</TooltipContent>
-    </Tooltip>
-  );
-}
