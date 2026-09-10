@@ -8,10 +8,10 @@ name, and the agent runs on whatever OpenAI-compatible endpoint answers — Groq
 OpenRouter, Google AI Studio, LiteLLM, a local LM Studio server, or anything else
 speaking the same wire format.
 
-> **Status: M6.** The page can be driven by hand, with a visible cursor that glides
-> to each target before it clicks. Phase 2 is complete: perception and actuation both
-> work, deterministically, with no model involved. The agent arrives in M7–M9, so
-> every harness task still reports `not_implemented`.
+> **Status: M7.** The provider layer is in: point Tiny at any OpenAI-compatible
+> endpoint from the settings screen and test it in one click. Nothing decides what to
+> do yet — the prompt and the loop are M8 and M9 — so every harness task still
+> reports `not_implemented`.
 >
 > The extension is called **Tiny** in the UI; `tiny-brow` is the project name.
 
@@ -28,7 +28,8 @@ The build runs through sixteen gated milestones (`docs/browser-agent-build-guide
 | M4 | The highlight overlay | **done** |
 | M5 | Manual actuation | **done** |
 | M6 | The cursor overlay | **done** |
-| M7 | The provider layer | next |
+| M7 | The provider layer | **done** |
+| M8 | Single-step decision | next |
 | M7–M10 | Provider layer, agent loop, provider matrix | |
 | M11–M14 | Compression, repair, safety gate, router | |
 | M15 | Packaging and release | |
@@ -226,6 +227,75 @@ and right for bulk, but some search boxes only open their autocomplete on a genu
 keydown and ignore a bulk insert entirely — `type -k` sends the keystrokes one at a
 time for those.
 
+## Bringing your own key
+
+Open **Settings** from the panel header. Pick a preset or Custom, paste an endpoint,
+a key and a model name, then **Test connection**.
+
+Presets are [data](src/lib/provider/presets.ts) — a base URL, some suggested models,
+and any default `extraParams`. That file is the only place in the codebase a provider
+is named. Adding one must never require touching the provider implementation; if it
+does, BYOK is a marketing claim rather than an architecture.
+
+**Custom is not an afterthought.** It is the option that keeps the rest honest,
+because it is the only one that proves nothing provider-specific leaked into the code
+path.
+
+### One implementation
+
+`POST /chat/completions`, not a Responses API — chat completions is the universal
+surface that LM Studio, OpenRouter, LiteLLM and Google's compatibility mode all
+implement, and choosing it is what makes BYOK real rather than aspirational.
+
+**Structured output, not tool calling.** Models frequently fail to emit tool calls
+through OpenAI-compatible layers because of chat-template mismatches, and the failure
+is silent and total. Schema-constrained decoding sidesteps that whole class of bug.
+
+The schema is defined once in Zod and both the wire schema and the runtime validation
+derive from it, so they cannot drift. Strict mode has two rules that are easy to break
+by accident — every object must set `additionalProperties: false`, and every declared
+property must be required — so `toWireSchema` checks for both locally and names the
+culprit, rather than letting it surface as a provider-side 400. `.optional()` is the
+usual mistake; use `.nullable()` so the shape stays fixed.
+
+### The `extraParams` escape hatch
+
+Providers have non-portable parameters that materially change cost and behaviour.
+They go in a passthrough bag on the config, never in the shared interface — the moment
+`reasoningEffort` becomes a first-class field, the core layer has learned about one
+vendor.
+
+Groq's defaults are set for a reason: `include_reasoning: false` alone still generated
+and billed 51 completion tokens for a one-word answer; adding `reasoning_effort: "low"`
+brought it to 16.
+
+### Failures, each one distinct
+
+Every one of these produces its own actionable message rather than a generic "request
+failed":
+
+| What happened | What you see |
+|---|---|
+| Wrong base URL answering HTML | *answered with text/html instead of JSON* — checked by content type, not by catching a parse exception |
+| Bad key | *The endpoint rejected the API key* |
+| 429 | *Rate limited. Retry in 7s* — read from `retry-after` and `x-ratelimit-*`, not guessed |
+| Model rejects schemas | The provider's own 400 text, surfaced verbatim |
+| `finish_reason: "length"` | *hit the token ceiling before finishing* — a hard error, never an empty answer |
+| Prose instead of JSON | *not JSON, despite being asked for a schema* |
+| JSON of the wrong shape | Zod's own validation errors |
+
+The truncation case is the subtle one. On a reasoning model the reasoning is generated
+*before* the content, so a tight `max_tokens` is eaten by it and you receive empty
+content with no error at all. It looks exactly like the model failing and it is a
+budget bug.
+
+### Permissions
+
+Host permission is requested one origin at a time, at the moment you save an endpoint.
+A BYOK tool cannot know its endpoints in advance, so the alternative is broad host
+access at install; narrowing it to the origin you actually typed is more work and far
+easier to defend in review.
+
 ## The page indexer
 
 `Runtime.evaluate` injects a self-contained function that turns the page into two
@@ -386,6 +456,7 @@ src/
   components/         panel UI: header, transcript, composer, logo
     ui/               shadcn-style primitives
   lib/                messaging protocol, command parser, types, zustand store
+    provider/         the BYOK layer: one implementation, presets as data
   styles/theme.css    OKLCH design tokens, light and dark
 public/icon/          toolbar icons, generated by `npm run icons`
 

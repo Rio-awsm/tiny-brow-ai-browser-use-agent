@@ -1,12 +1,14 @@
 import { useCallback, useEffect, useState } from "react";
 import { Composer, type ToolId } from "@/components/Composer";
 import { PanelHeader } from "@/components/PanelHeader";
+import { SettingsView } from "@/components/SettingsView";
 import { Transcript } from "@/components/Transcript";
 import { TooltipProvider } from "@/components/ui/tooltip";
 import { PANEL_PORT, sendToBackground, type PanelMessage } from "@/lib/messaging";
 import { COMMAND_HELP, parseCommand } from "@/lib/commands";
 import { estimateTokens, serializeIndex } from "@/lib/page-index";
 import { usePanel } from "@/lib/store";
+import { DEFAULT_CONFIG, loadConfig, validateConfig, type ProviderConfig } from "@/lib/provider";
 
 const TOOL_MESSAGE: Record<ToolId, PanelMessage> = {
   attach: { kind: "cdpAttach" },
@@ -31,6 +33,12 @@ export function App() {
   // The tab Tiny is driving. It follows the active tab while idle, and a newtab
   // command retargets it, so a run always names the page it means.
   const [targetTabId, setTargetTabId] = useState<number | undefined>(undefined);
+  const [settingsOpen, setSettingsOpen] = useState(false);
+  const [provider, setProvider] = useState<ProviderConfig>(DEFAULT_CONFIG);
+
+  useEffect(() => {
+    void loadConfig().then(setProvider);
+  }, []);
 
   // A preference, so it outlives the panel rather than resetting every time it
   // is reopened.
@@ -226,6 +234,22 @@ export function App() {
     note("info", "no agent yet — the observe-decide-act loop lands in M9");
   };
 
+  if (settingsOpen) {
+    return (
+      <TooltipProvider delayDuration={300}>
+        <SettingsView
+          config={provider}
+          onClose={() => setSettingsOpen(false)}
+          onSaved={(next) => {
+            setProvider(next);
+            note("info", `model set to ${next.model}`);
+            setSettingsOpen(false);
+          }}
+        />
+      </TooltipProvider>
+    );
+  }
+
   return (
     <TooltipProvider delayDuration={300}>
       <div className="flex h-full flex-col bg-background">
@@ -233,7 +257,10 @@ export function App() {
           tab={tab}
           cdp={cdp}
           hasEvents={events.length > 0}
+          providerReady={validateConfig(provider).length === 0}
+          providerLabel={provider.model}
           onClear={clear}
+          onSettings={() => setSettingsOpen(true)}
         />
         <Transcript events={events} />
         <Composer

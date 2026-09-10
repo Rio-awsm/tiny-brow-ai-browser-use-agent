@@ -11,6 +11,10 @@ export default defineConfig({
     // sidePanel is added by WXT because a sidepanel entrypoint exists.
     // tabs and scripting are added in dev for hot reload.
     permissions: ["storage", "tabs", "activeTab", "debugger"],
+    // Requested one origin at a time when the user saves an endpoint, rather
+    // than granted broadly at install. A BYOK tool cannot know its endpoints in
+    // advance, and this is far easier to justify in review.
+    optional_host_permissions: ["http://*/*", "https://*/*"],
     icons: {
       16: "icon/16.png",
       32: "icon/32.png",

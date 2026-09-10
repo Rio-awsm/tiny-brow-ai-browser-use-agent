@@ -9,10 +9,21 @@ interface Props {
   tab: TabInfo | null;
   cdp: CdpStatus | null;
   hasEvents: boolean;
+  providerReady: boolean;
+  providerLabel: string;
   onClear: () => void;
+  onSettings: () => void;
 }
 
-export function PanelHeader({ tab, cdp, hasEvents, onClear }: Props) {
+export function PanelHeader({
+  tab,
+  cdp,
+  hasEvents,
+  providerReady,
+  providerLabel,
+  onClear,
+  onSettings,
+}: Props) {
   const state = cdp?.state ?? "detached";
   const attached = state === "attached";
   const foreign = attached && !cdp?.owned;
@@ -64,7 +75,14 @@ export function PanelHeader({ tab, cdp, hasEvents, onClear }: Props) {
         </TooltipButton>
       )}
 
-      <TooltipButton tip="Settings arrive in M15" side="bottom" variant="ghost" size="icon" disabled>
+      <TooltipButton
+        tip={providerReady ? `Model: ${providerLabel}` : "No model configured yet"}
+        side="bottom"
+        variant="ghost"
+        size="icon"
+        onClick={onSettings}
+        className={providerReady ? undefined : "text-warning"}
+      >
         <Settings />
       </TooltipButton>
     </header>
