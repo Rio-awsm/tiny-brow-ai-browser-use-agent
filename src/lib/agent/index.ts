@@ -1,5 +1,5 @@
 import type { Command } from "@/lib/commands";
-import type { PageIndex } from "@/lib/page-index";
+import type { IndexedElement, PageIndex } from "@/lib/page-index";
 import {
   makeProvider,
   type ProviderConfig,
@@ -59,6 +59,73 @@ export function detectAuthWall(page: PageIndex): string | null {
 export function findDismissControl(page: PageIndex): number | null {
   const match = page.elements.find((e) => DISMISS.test(`${e.label} ${e.note}`));
   return match ? match.i : null;
+}
+
+/**
+ * Somewhere on the page that is not the modal, for clicking it away.
+ *
+ * The close control that defeats an agent is the one with no accessible name:
+ * it is not in the index, so it cannot be clicked however well the model is
+ * prompted, and Escape does not reach the overlays that never listen for it.
+ * The backdrop is the third way out, and it is the one that needs no element to
+ * exist — which is exactly why it has to be a coordinate.
+ *
+ * Returns null rather than guessing when nothing is safely clickable: a stray
+ * click on a real control is worse than not trying, because it navigates.
+ */
+export function backdropPoint(page: PageIndex): { x: number; y: number } | null {
+  const { w, h } = page.viewport;
+  if (w < 40 || h < 40) return null;
+
+  const modal = page.elements.filter((e) => e.note.includes("in dialog"));
+  const box = modal.length > 0 ? union(modal) : null;
+
+  // Down the sides first: a modal is centred far more often than not, so the
+  // left and right margins are backdrop and the top is a header.
+  const candidates = [
+    { x: 8, y: Math.round(h / 2) },
+    { x: w - 8, y: Math.round(h / 2) },
+    { x: Math.round(w / 2), y: h - 8 },
+    { x: 8, y: h - 8 },
+    { x: w - 8, y: 8 },
+  ];
+
+  return (
+    candidates.find(
+      (p) =>
+        (!box || outside(p, box)) &&
+        !page.elements.some((e) => within(p, e)),
+    ) ?? null
+  );
+}
+
+interface Box { left: number; top: number; right: number; bottom: number }
+
+function union(elements: IndexedElement[]): Box {
+  return elements.reduce<Box>(
+    (b, e) => ({
+      left: Math.min(b.left, e.x),
+      top: Math.min(b.top, e.y),
+      right: Math.max(b.right, e.x + e.w),
+      bottom: Math.max(b.bottom, e.y + e.h),
+    }),
+    { left: Infinity, top: Infinity, right: -Infinity, bottom: -Infinity },
+  );
+}
+
+/** Generous margins: landing on the modal's own edge does not dismiss it. */
+function outside(p: { x: number; y: number }, box: Box): boolean {
+  const PAD = 12;
+  return (
+    p.x < box.left - PAD ||
+    p.x > box.right + PAD ||
+    p.y < box.top - PAD ||
+    p.y > box.bottom + PAD
+  );
+}
+
+function within(p: { x: number; y: number }, e: IndexedElement): boolean {
+  return p.x >= e.x && p.x <= e.x + e.w && p.y >= e.y && p.y <= e.y + e.h;
 }
 
 /**

@@ -254,7 +254,7 @@ is how you debug a run that went wrong.
 | Page still loading | The waiting layer runs before every read, so a step never reasons about a half-rendered page. |
 | An action changed nothing | The next turn is told so in words — same URL, same scroll, same elements. A model shown a page cannot see a diff, and left to infer it, it clicks the same dead button until the cap. |
 | The same choice twice | The element is named and forbidden. Handing over on the third identical action was too quick: nothing had ever told the model that the thing did not work. |
-| The same choice three times | Escape is pressed once, then the plan is rewritten once, then the run is handed to you. A stuck run is usually stuck behind an overlay, and the close buttons that defeat it are the ones with no accessible name — not in the index, so not clickable however well the model is prompted. Escape does not need the element to exist. |
+| The same choice three times | Three mechanical recoveries in order — Escape, a click on the backdrop, a rewritten plan — then the run is handed to you. A stuck run is usually stuck behind an overlay, and the close buttons that defeat it are the ones with no accessible name: not in the index, so not clickable however well the model is prompted. Neither Escape nor a backdrop click needs the element to exist. |
 | Off-schema reply | Retried twice. One bad decode is a provider flake, and failing the task over it scores the endpoint's hiccup as the agent being unable to do the job. |
 | `fail` on the first attempt | Challenged once. Giving up is cheap for the model and expensive for you, and it often does it while its own reason names the next thing to try. |
 | `done` | Checked by a second, independent call before the run ends. |
@@ -429,6 +429,25 @@ allows.** A default the other way would mean the test suite could place an order
 Banks are handled by the allow list rather than a list of banks. Naming the domains to
 keep out is a game you lose, because there is always one more; naming the ones a task
 needs is finite, and it is also what stops a grocery task wandering into your email.
+
+### Getting out from under a modal
+
+Three ways, tried in that order, and the order is by how little each one assumes:
+
+1. **Escape.** Costs nothing and closes most dialogs.
+2. **A click on the backdrop.** For the ones that never listened for Escape. This is
+   the only place in the codebase that clicks a raw coordinate rather than a listed
+   element — deliberately, because the backdrop is not something anyone indexed, which
+   is the whole reason the agent is stuck on it. Points down the sides are tried first,
+   since a modal is centred far more often than not, and a candidate is rejected if it
+   lands inside the modal's own bounds or on top of any listed element. If none is safe
+   it does not click: a stray click navigates, and that is worse than not trying.
+3. **A new plan**, if a planner route is configured.
+
+Then the run is handed to you. What makes this necessary rather than fussy is a real
+page: MakeMyTrip's login popup has a close control with no accessible name, so it never
+reaches the index, and no amount of prompting can make a model click an element it was
+never shown.
 
 ## Plan, navigate, check
 

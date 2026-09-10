@@ -2,6 +2,15 @@ export type TypeMode = "insert" | "keys";
 
 export type Command =
   | { kind: "click"; index: number }
+  /**
+   * A click at a viewport coordinate rather than at a listed element.
+   *
+   * Only recovery uses this. Every ordinary action names an index, because a
+   * raw coordinate is unreadable in a transcript and unreproducible on a page
+   * that has moved — but dismissing a modal by clicking its backdrop needs a
+   * point precisely because the backdrop is not an element anyone indexed.
+   */
+  | { kind: "clickPoint"; x: number; y: number; why: string }
   | { kind: "type"; index: number; text: string; mode: TypeMode }
   | { kind: "key"; name: string }
   | { kind: "scroll"; direction: "up" | "down"; amount: number }

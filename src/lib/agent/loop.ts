@@ -1,7 +1,7 @@
 import type { Command } from "@/lib/commands";
 import type { PageIndex } from "@/lib/page-index";
 import { ProviderError, type ProviderConfig, type TokenUsage } from "@/lib/provider";
-import { propose, toCommand, type Proposal } from "./index";
+import { backdropPoint, propose, toCommand, type Proposal } from "./index";
 import { makePlan, type PlanResult } from "./planner";
 import { configFor, type Routes } from "./roles";
 import { gate, injectionSpans, DEFAULT_FIREWALL, type Firewall, type Judgement } from "./safety";
@@ -141,6 +141,8 @@ export async function runLoop(opts: LoopOptions): Promise<RunOutcome> {
   let nudgedFor = "";
   /** Escape is tried once per run as a way out of an overlay. */
   let escaped = false;
+  /** And the backdrop once, for the overlays that never listened for Escape. */
+  let tappedBackdrop = false;
   /** Every fact extracted so far, in order, kept verbatim for the final answer. */
   const notes: string[] = [];
   let extractRepeats = 0;
@@ -445,6 +447,36 @@ export async function runLoop(opts: LoopOptions): Promise<RunOutcome> {
         "Escape was pressed to close anything covering the page. Look at the " +
         "elements again — if the overlay is gone, get on with the task.";
       continue;
+    }
+
+    // The overlays that ignore Escape are usually the ones that close when you
+    // click away from them. This needs a coordinate rather than an element for
+    // the same reason the whole problem exists: the backdrop is not something
+    // anyone indexed.
+    if (stuck && !wall && !tappedBackdrop) {
+      const spot = backdropPoint(page);
+      if (spot) {
+        tappedBackdrop = true;
+        recent.length = 0;
+        try {
+          const result = await opts.execute(
+            { kind: "clickPoint", x: spot.x, y: spot.y, why: "clicking away from the popup" },
+            action,
+          );
+          history.push({
+            n: history.length + 1,
+            action: "clicked away from the popup",
+            outcome: result.summary,
+          });
+          opts.onStepEnd(n, "stuck — clicked outside whatever is covering the page", true);
+        } catch (err) {
+          return finish("error", "", message(err));
+        }
+        correction =
+          "The page was clicked away from the popup, which closes most of them. " +
+          "Look at the elements again — if it is gone, get on with the task.";
+        continue;
+      }
     }
 
     // A stuck run is exactly what a planner is for: the navigator has proved it

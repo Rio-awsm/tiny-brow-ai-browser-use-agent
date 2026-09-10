@@ -251,6 +251,14 @@ export async function runCommand(
       });
     }
 
+    case "clickPoint": {
+      throwIfAborted(signal);
+      await clickAt(tabId, command.x, command.y, showCursor, `Tiny · ${command.why}`.slice(0, 44));
+      return done(`${command.why} at (${command.x}, ${command.y})`, {
+        at: { x: command.x, y: command.y },
+      });
+    }
+
     case "type": {
       const t = await target(tabId, command.index, true);
       throwIfAborted(signal);

@@ -249,6 +249,37 @@ const cases: Case[] = [
       s.acted.includes("key") || `never pressed Escape: ${JSON.stringify(s.acted)}`,
   },
   {
+    name: "then clicks away from the popup, which Escape does not always close",
+    replies: Array.from({ length: 8 }, () => ({ action: "click" as const, index: 1 })),
+    page: () =>
+      page("https://mmt.test/flights/", {
+        elements: [
+          el(0, "textbox", "Mobile number", "in dialog"),
+          el(1, "button", "CONTINUE", "in dialog"),
+        ],
+      }),
+    expect: (_o, s) =>
+      s.acted.filter((k) => k === "clickPoint").length === 1 ||
+      `never clicked the backdrop: ${JSON.stringify(s.acted)}`,
+  },
+  {
+    // A stray click navigates. Not trying is better than trying on a control.
+    name: "but not when every candidate point sits on a real control",
+    replies: Array.from({ length: 8 }, () => ({ action: "click" as const, index: 1 })),
+    page: () =>
+      page("https://covered.test/", {
+        elements: [el(0, "link", "Full-bleed banner"), el(1, "button", "CONTINUE")].map((e) => ({
+          ...e,
+          x: 0,
+          y: 0,
+          w: 1000,
+          h: 800,
+        })),
+      }),
+    expect: (_o, s) =>
+      !s.acted.includes("clickPoint") || `clicked a control: ${JSON.stringify(s.acted)}`,
+  },
+  {
     name: "but clicking in circles is still handed over",
     replies: Array.from({ length: 12 }, () => ({ action: "click" as const, index: 1 })),
     expect: (o) => o.status === "needs_user" || `status ${o.status}`,
