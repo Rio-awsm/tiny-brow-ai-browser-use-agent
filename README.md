@@ -502,9 +502,15 @@ failure taxonomy all apply unchanged, because the bridge is just another
 `AgentDriver`.
 
 ```bash
+npm run fixtures   # serve the local pages T10 needs; leave it running
 npm run bench      # score the whole suite on the backend in .env
 npm run matrix     # compare every run recorded so far
 ```
+
+T10 tests interruption handling, so its cookie banner and login wall have to be
+present every time and identical every time. Pointing it at a real site would make it
+fail for reasons that have nothing to do with interruptions, so it runs against a
+local fixture — start `npm run fixtures` before scoring or T10 lands on an error page.
 
 **To pass flags, run the script directly.** npm consumes `--provider` and `--model`
 as its own config before they reach the harness — on Windows it drops the flag names

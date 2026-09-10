@@ -35,6 +35,12 @@ export interface RunOutcome {
   usage: TokenUsage;
   ms: number;
   error?: string;
+  /**
+   * Why it ended, in the scorer's vocabulary. Naming the mode for every failure
+   * is the point of the matrix: "unknown" tells you nothing about which of the
+   * model, the endpoint or the page was at fault.
+   */
+  failure?: string;
 }
 
 export interface ExecuteResult {
@@ -86,7 +92,7 @@ const MAX_BACKOFF_MS = 30_000;
 export async function runLoop(opts: LoopOptions): Promise<RunOutcome> {
   const started = Date.now();
   const sleep = opts.sleep ?? ((ms: number) => new Promise((r) => setTimeout(r, ms)));
-  const maxRateLimitRetries = opts.maxRateLimitRetries ?? 3;
+  const maxRetries = opts.maxRateLimitRetries ?? 5;
 
   const history: HistoryEntry[] = [];
   const usage: TokenUsage = { prompt: 0, completion: 0, cachedPrompt: 0 };
@@ -101,13 +107,19 @@ export async function runLoop(opts: LoopOptions): Promise<RunOutcome> {
   const recent: string[] = [];
   let handedOffFor = "";
 
-  const finish = (status: RunStatus, answer = "", error?: string): RunOutcome => ({
+  const finish = (
+    status: RunStatus,
+    answer = "",
+    error?: string,
+    failure?: string,
+  ): RunOutcome => ({
     status,
     answer,
     steps,
     usage,
     ms: Date.now() - started,
     error,
+    failure,
   });
 
   for (let n = 1; n <= opts.stepCap; n++) {
@@ -126,7 +138,7 @@ export async function runLoop(opts: LoopOptions): Promise<RunOutcome> {
     // Decide, surviving a rate limit rather than dying on it. Free tiers are
     // tight enough that a 429 mid-run is routine, not exceptional.
     let proposal: Proposal | null = null;
-    for (let attempt = 0; attempt <= maxRateLimitRetries; attempt++) {
+    for (let attempt = 0; attempt <= maxRetries; attempt++) {
       if (opts.signal.aborted) return finish("stopped");
       try {
         proposal = await propose({
@@ -140,20 +152,27 @@ export async function runLoop(opts: LoopOptions): Promise<RunOutcome> {
         break;
       } catch (err) {
         if (err instanceof ProviderError && err.kind === "aborted") return finish("stopped");
-        if (err instanceof ProviderError && err.kind === "rate_limit") {
-          if (attempt === maxRateLimitRetries) {
-            return finish("error", "", `${err.message} Gave up after ${attempt + 1} attempts.`);
+
+        // A 429 and a 5xx are both "come back shortly", and treating the second
+        // as fatal turns a provider hiccup into a failed task — which then
+        // reads as the agent being bad at the job.
+        if (err instanceof ProviderError && isTransient(err)) {
+          if (attempt === maxRetries) {
+            return finish(
+              "error",
+              "",
+              `${err.message} Gave up after ${attempt + 1} attempts.`,
+              failureFor(err),
+            );
           }
-          // The provider's own retry-after beats guessing; back off with jitter
-          // only when it does not say.
           const wait =
             err.rateLimit?.retryAfterMs ??
             Math.min(2 ** attempt * 1000 + Math.random() * 1000, MAX_BACKOFF_MS);
-          opts.onWait?.(wait, "rate limited");
+          opts.onWait?.(wait, err.kind === "rate_limit" ? "rate limited" : `endpoint ${err.status ?? "error"}`);
           await sleep(wait);
           continue;
         }
-        return finish("error", "", message(err));
+        return finish("error", "", message(err), err instanceof ProviderError ? failureFor(err) : "unknown");
       }
     }
     if (!proposal) return finish("error", "", "no proposal");
@@ -166,7 +185,7 @@ export async function runLoop(opts: LoopOptions): Promise<RunOutcome> {
     if (proposal.problem) {
       if (repaired) {
         opts.onStepEnd(n, proposal.problem, false);
-        return finish("failed", "", proposal.problem);
+        return finish("failed", "", proposal.problem, "invalid_index");
       }
       // Re-prompt with the concrete correction rather than narrating the error
       // in prose. The step is retried, not consumed.
@@ -204,7 +223,7 @@ export async function runLoop(opts: LoopOptions): Promise<RunOutcome> {
 
       if (reply.action === "stop") {
         opts.onStepEnd(n, `handed over: ${because}`, false);
-        return finish("needs_user", because);
+        return finish("needs_user", because, undefined, "needs_user");
       }
 
       history.push({
@@ -229,7 +248,7 @@ export async function runLoop(opts: LoopOptions): Promise<RunOutcome> {
 
       if (reply.action === "stop") {
         opts.onStepEnd(n, "handed over to you", false);
-        return finish("needs_user", action.value ?? "");
+        return finish("needs_user", action.value ?? "", undefined, "needs_user");
       }
       history.push(
         historyLine(
@@ -247,7 +266,12 @@ export async function runLoop(opts: LoopOptions): Promise<RunOutcome> {
     if (isTerminal(action)) {
       const answer = action.value ?? "";
       opts.onStepEnd(n, action.action === "done" ? "task complete" : `gave up: ${answer}`, action.action === "done");
-      return finish(action.action === "done" ? "done" : "failed", answer);
+      return finish(
+        action.action === "done" ? "done" : "failed",
+        answer,
+        undefined,
+        action.action === "done" ? undefined : "agent_gave_up",
+      );
     }
 
     if (action.action === "extract") {
@@ -279,7 +303,30 @@ export async function runLoop(opts: LoopOptions): Promise<RunOutcome> {
     if (opts.signal.aborted) return finish("stopped");
   }
 
-  return finish("step_cap");
+  return finish("step_cap", "", undefined, "step_cap");
+}
+
+/** Worth waiting out rather than failing the task over. */
+function isTransient(err: ProviderError): boolean {
+  if (err.kind === "rate_limit") return true;
+  return err.kind === "http" && err.status !== undefined && err.status >= 500;
+}
+
+/** Translates a provider failure into the scorer's vocabulary. */
+function failureFor(err: ProviderError): string {
+  switch (err.kind) {
+    case "rate_limit": return "rate_limit";
+    case "truncated": return "truncated";
+    case "schema_rejected": return "schema_rejection";
+    case "schema_invalid":
+    case "invalid_json": return "schema_invalid";
+    case "network":
+    case "not_json":
+    case "bad_key":
+    case "not_configured":
+    case "http": return "provider_error";
+    default: return "unknown";
+  }
 }
 
 const message = (err: unknown) => (err instanceof Error ? err.message : String(err));

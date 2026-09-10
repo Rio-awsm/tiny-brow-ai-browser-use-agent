@@ -399,7 +399,11 @@ export function App() {
           completed: result?.outcome.status === "done",
           finalUrl: result?.finalUrl ?? "",
           steps: result?.steps ?? [],
-          failure: result ? failureFor(result.outcome.status) : "driver_error",
+          // The loop names the mode when it knows it; the status is only a
+          // fallback for the cases it does not.
+          failure: result
+            ? (result.outcome.failure ?? failureFor(result.outcome.status))
+            : "driver_error",
           error: result?.outcome.error,
         });
         setBench((b) => ({ ...b, completed: b.completed + 1 }));

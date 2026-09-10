@@ -75,6 +75,8 @@ export type FailureMode =
   | "agent_gave_up"
   /** Hit a sign-in or other wall only a human can pass. */
   | "needs_user"
+  /** The endpoint was unreachable, refused, or 5xx'd. Not the model's fault. */
+  | "provider_error"
   /** Page/DOM/CDP problem rather than a model problem. */
   | "page_error"
   /** The driver itself threw. A harness bug, never a model result. */

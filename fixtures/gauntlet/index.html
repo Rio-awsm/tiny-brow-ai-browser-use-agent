@@ -1,0 +1,134 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>Wikipedia — the free encyclopedia</title>
+    <style>
+      :root { color-scheme: light; }
+      * { box-sizing: border-box; }
+      body {
+        margin: 0;
+        font: 15px/1.6 ui-sans-serif, -apple-system, "Segoe UI", Roboto, sans-serif;
+        color: #202122;
+        background: #fff;
+      }
+      header { border-bottom: 1px solid #c8ccd1; padding: 14px 20px; }
+      h1 { margin: 0; font-size: 20px; font-weight: 600; }
+      main { max-width: 760px; margin: 0 auto; padding: 28px 20px 80px; }
+      .search { display: flex; gap: 8px; margin: 24px 0; }
+      input[type="search"] {
+        flex: 1; padding: 9px 12px; font-size: 15px;
+        border: 1px solid #a2a9b1; border-radius: 2px;
+      }
+      button {
+        padding: 9px 16px; font-size: 14px; cursor: pointer;
+        border: 1px solid #a2a9b1; border-radius: 2px; background: #f8f9fa;
+      }
+      button.primary { background: #3366cc; border-color: #3366cc; color: #fff; }
+      #article { display: none; }
+      #article.on { display: block; }
+
+      /* Both overlays sit above the page and cover it, so the indexer's
+         topmost check must drop everything behind them. */
+      .veil {
+        position: fixed; inset: 0; display: flex;
+        align-items: center; justify-content: center;
+        background: rgba(15, 20, 30, 0.55); z-index: 9000;
+      }
+      .veil[hidden] { display: none; }
+      .panel {
+        background: #fff; padding: 22px; border-radius: 8px;
+        max-width: 420px; box-shadow: 0 10px 40px rgba(0,0,0,.3);
+      }
+      .panel h2 { margin: 0 0 8px; font-size: 17px; }
+      .panel p { margin: 0 0 16px; color: #54595d; font-size: 14px; }
+      .row { display: flex; gap: 8px; }
+      #cookies { z-index: 9100; }
+    </style>
+  </head>
+  <body>
+    <!-- Cookie banner first: it covers the login wall, which covers the page,
+         so they have to be dealt with in order. -->
+    <div class="veil" id="cookies">
+      <div class="panel">
+        <h2>We value your privacy</h2>
+        <p>We and our 847 partners store cookies on your device.</p>
+        <div class="row">
+          <button class="primary" id="accept-cookies">Accept all cookies</button>
+          <button id="reject-cookies">Reject non-essential</button>
+        </div>
+      </div>
+    </div>
+
+    <div class="veil" id="login" hidden>
+      <div class="panel">
+        <h2>Create a free account</h2>
+        <p>Readers like you keep this encyclopedia going. Sign up to continue.</p>
+        <div class="row">
+          <button class="primary" id="create-account">Create account</button>
+          <button id="dismiss-login">Continue without an account</button>
+        </div>
+      </div>
+    </div>
+
+    <header><h1>Wikipedia</h1></header>
+
+    <main>
+      <p>The free encyclopedia that anyone can edit.</p>
+
+      <form class="search" id="search-form">
+        <input
+          type="search"
+          id="q"
+          name="q"
+          placeholder="Search Wikipedia"
+          aria-label="Search Wikipedia"
+          autocomplete="off"
+        />
+        <button class="primary" type="submit" id="search-button">Search</button>
+      </form>
+
+      <article id="article">
+        <h2 id="article-title">Chandrayaan-3</h2>
+        <p id="lead">
+          Chandrayaan-3 is the third lunar exploration mission under the Indian Space
+          Research Organisation's (ISRO) Chandrayaan programme. It consists of a lander
+          named Vikram and a rover named Pragyan, similar to those aboard Chandrayaan-2.
+          Launched on 14 July 2023, the lander touched down near the lunar south pole on
+          23 August 2023, making India the fourth country to achieve a soft landing on
+          the Moon and the first to do so near the south pole.
+        </p>
+      </article>
+
+      <p id="empty">Search for a topic to read about it.</p>
+    </main>
+
+    <script>
+      const $ = (id) => document.getElementById(id);
+
+      // Accepting or rejecting cookies both reveal the login wall behind them.
+      const openLogin = () => {
+        $("cookies").remove();
+        $("login").hidden = false;
+      };
+      $("accept-cookies").addEventListener("click", openLogin);
+      $("reject-cookies").addEventListener("click", openLogin);
+
+      // "Create account" deliberately leads nowhere: the agent must decline it.
+      $("create-account").addEventListener("click", () => {
+        location.href = "/gauntlet/signup.html";
+      });
+      $("dismiss-login").addEventListener("click", () => $("login").remove());
+
+      $("search-form").addEventListener("submit", (e) => {
+        e.preventDefault();
+        const query = $("q").value.trim().toLowerCase();
+        const hit = query.includes("chandrayaan");
+        $("article").classList.toggle("on", hit);
+        $("empty").textContent = hit ? "" : `No results for "${$("q").value}".`;
+        if (hit) document.title = "Chandrayaan-3 — Wikipedia";
+      });
+    </script>
+  </body>
+</html>

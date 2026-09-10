@@ -23,7 +23,8 @@
     "icons": "tsx scripts/make-icons.ts",
     "check:extractor": "tsx scripts/check-extractor.ts",
     "bench": "tsx harness/index.ts --driver bridge",
-    "matrix": "tsx harness/index.ts --compare"
+    "matrix": "tsx harness/index.ts --compare",
+    "fixtures": "tsx scripts/fixtures.ts"
   },
   "devDependencies": {
     "@tailwindcss/vite": "^4.3.3",
