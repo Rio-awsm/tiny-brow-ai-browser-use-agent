@@ -1,40 +1,55 @@
 import { create } from "zustand";
+import type { CdpStatus, Screenshot } from "./cdp-types";
 import type { TabInfo } from "./messaging";
+import type { PageIndex } from "./page-index";
 
-export type LogLevel = "info" | "sent" | "recv" | "error";
+export type NoteLevel = "info" | "sent" | "recv" | "error";
 
-export interface LogEntry {
+interface Base {
   id: number;
   at: number;
-  level: LogLevel;
-  text: string;
 }
+
+export type PanelEvent =
+  | (Base & { kind: "note"; level: NoteLevel; text: string })
+  | (Base & { kind: "task"; text: string })
+  | (Base & { kind: "shot"; shot: Screenshot })
+  | (Base & { kind: "index"; index: PageIndex });
+
+/** Omit over a union must distribute, or the branches collapse to their overlap. */
+type DistributiveOmit<T, K extends PropertyKey> = T extends unknown ? Omit<T, K> : never;
+export type NewPanelEvent = DistributiveOmit<PanelEvent, "id" | "at">;
 
 interface PanelState {
   task: string;
   running: boolean;
   tab: TabInfo | null;
-  log: LogEntry[];
+  cdp: CdpStatus | null;
+  events: PanelEvent[];
   setTask: (task: string) => void;
   setRunning: (running: boolean) => void;
   setTab: (tab: TabInfo | null) => void;
-  append: (level: LogLevel, text: string) => void;
-  clearLog: () => void;
+  setCdp: (cdp: CdpStatus | null) => void;
+  note: (level: NoteLevel, text: string) => void;
+  push: (event: NewPanelEvent) => void;
+  clear: () => void;
 }
 
 let nextId = 1;
+const stamp = () => ({ id: nextId++, at: Date.now() });
 
 export const usePanel = create<PanelState>((set) => ({
   task: "",
   running: false,
   tab: null,
-  log: [],
+  cdp: null,
+  events: [],
   setTask: (task) => set({ task }),
   setRunning: (running) => set({ running }),
   setTab: (tab) => set({ tab }),
-  append: (level, text) =>
-    set((s) => ({
-      log: [...s.log, { id: nextId++, at: Date.now(), level, text }],
-    })),
-  clearLog: () => set({ log: [] }),
+  setCdp: (cdp) => set({ cdp }),
+  note: (level, text) =>
+    set((s) => ({ events: [...s.events, { ...stamp(), kind: "note", level, text }] })),
+  push: (event) => set((s) => ({ events: [...s.events, { ...stamp(), ...event }] })),
+  clear: () => set({ events: [] }),
 }));

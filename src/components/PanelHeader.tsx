@@ -1,87 +1,84 @@
-import { Globe, Radio, Settings } from "lucide-react";
-import { Badge } from "@/components/ui/badge";
-import { Button } from "@/components/ui/button";
-import {
-  Tooltip,
-  TooltipContent,
-  TooltipTrigger,
-} from "@/components/ui/tooltip";
+import { Eraser, Settings } from "lucide-react";
+import { Logo } from "@/components/Logo";
+import { TooltipButton } from "@/components/ui/tooltip-button";
+import { Tooltip, TooltipContent, TooltipTrigger } from "@/components/ui/tooltip";
+import type { CdpStatus } from "@/lib/cdp-types";
 import type { TabInfo } from "@/lib/messaging";
 
 interface Props {
   tab: TabInfo | null;
-  connected: boolean;
+  cdp: CdpStatus | null;
+  hasEvents: boolean;
+  onClear: () => void;
 }
 
-export function PanelHeader({ tab, connected }: Props) {
-  const host = safeHost(tab?.url);
+export function PanelHeader({ tab, cdp, hasEvents, onClear }: Props) {
+  const state = cdp?.state ?? "detached";
+  const attached = state === "attached";
+  const foreign = attached && !cdp?.owned;
+
+  const dot = foreign
+    ? "bg-warning"
+    : attached
+      ? "bg-primary"
+      : state === "restricted"
+        ? "bg-warning"
+        : "bg-muted-foreground/45";
+
+  const explain = foreign
+    ? "A debugger is attached by something else"
+    : attached
+      ? "Debugger attached — Chrome shows its banner while this lasts"
+      : state === "restricted"
+        ? (cdp?.reason ?? "This page cannot be driven")
+        : "Not attached";
 
   return (
-    <header className="border-b border-border bg-surface/80 px-3 py-2.5 backdrop-blur">
-      <div className="flex items-center justify-between">
-        <div className="flex items-center gap-2">
-          <div className="flex size-6 items-center justify-center rounded-md bg-primary/12 text-primary">
-            <Radio className="size-3.5" />
-          </div>
-          <div className="leading-none">
-            <div className="text-[13px] font-semibold tracking-tight">tiny-brow</div>
-            <div className="mt-0.5 text-[10px] text-muted-foreground">
-              milestone 1 · shell
-            </div>
-          </div>
-        </div>
+    <header className="flex h-11 shrink-0 items-center gap-2 border-b border-border px-3">
+      <Logo className="size-[18px] text-primary" />
+      <span className="text-[13px] font-semibold tracking-tight">tiny-brow</span>
 
-        <div className="flex items-center gap-1.5">
-          <Tooltip>
-            <TooltipTrigger asChild>
-              <Badge variant={connected ? "primary" : "danger"}>
-                <span
-                  className={`size-1.5 rounded-full ${
-                    connected ? "bg-primary" : "bg-destructive"
-                  }`}
-                />
-                {connected ? "linked" : "offline"}
-              </Badge>
-            </TooltipTrigger>
-            <TooltipContent side="bottom">
-              {connected
-                ? "Background service worker is responding"
-                : "No reply from the background service worker"}
-            </TooltipContent>
-          </Tooltip>
+      <Tooltip>
+        <TooltipTrigger asChild>
+          <button className="ml-auto flex min-w-0 items-center gap-1.5 rounded-md px-1.5 py-1 transition-colors hover:bg-accent">
+            <span className={`size-1.5 shrink-0 rounded-full ${dot}`} />
+            <span className="max-w-[130px] truncate text-[11px] text-muted-foreground">
+              {hostOf(tab?.url) ?? "no page"}
+            </span>
+          </button>
+        </TooltipTrigger>
+        <TooltipContent side="bottom" className="max-w-[220px]">
+          {explain}
+        </TooltipContent>
+      </Tooltip>
 
-          <Tooltip>
-            <TooltipTrigger asChild>
-              <Button variant="ghost" size="icon" disabled>
-                <Settings />
-              </Button>
-            </TooltipTrigger>
-            <TooltipContent side="bottom">Settings arrive in M15</TooltipContent>
-          </Tooltip>
-        </div>
-      </div>
+      {hasEvents && (
+        <TooltipButton
+          tip="Clear session"
+          side="bottom"
+          variant="ghost"
+          size="icon"
+          onClick={onClear}
+        >
+          <Eraser />
+        </TooltipButton>
+      )}
 
-      <div className="mt-2.5 flex items-center gap-1.5 rounded-md border border-border/70 bg-elevated px-2 py-1.5">
-        <Globe className="size-3 shrink-0 text-muted-foreground" />
-        <span className="truncate text-[11px] text-muted-foreground" title={tab?.url}>
-          {host ?? "no active tab"}
-        </span>
-        {tab?.title && (
-          <span className="ml-auto max-w-[45%] truncate text-[10px] text-muted-foreground/70">
-            {tab.title}
-          </span>
-        )}
-      </div>
+      <TooltipButton tip="Settings arrive in M15" side="bottom" variant="ghost" size="icon" disabled>
+        <Settings />
+      </TooltipButton>
     </header>
   );
 }
 
-function safeHost(url?: string): string | null {
+function hostOf(url?: string): string | null {
   if (!url) return null;
   try {
     const u = new URL(url);
-    return u.protocol === "http:" || u.protocol === "https:" ? u.host : url;
+    return u.protocol === "http:" || u.protocol === "https:"
+      ? u.host.replace(/^www\./, "")
+      : u.protocol.replace(":", "");
   } catch {
-    return url;
+    return url.slice(0, 24);
   }
 }

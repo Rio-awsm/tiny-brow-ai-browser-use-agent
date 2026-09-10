@@ -1,4 +1,5 @@
 import * as cdp from "./cdp";
+import { buildIndex } from "./extract";
 import {
   isPanelMessage,
   type ContentMessage,
@@ -70,6 +71,24 @@ async function handle(msg: PanelMessage): Promise<PanelReply> {
       const tab = await requireTab();
       await cdp.detach(tab.id);
       return { ok: true, kind: "cdpStatus", status: await cdp.status(tab.id, tab.url) };
+    }
+
+    case "buildIndex": {
+      const tab = await requireTab();
+      // Indexing needs a session; keep whatever mode the tab is already in.
+      const wasAttached = (await cdp.status(tab.id, tab.url)).state === "attached";
+      await cdp.attach(tab.id, tab.url, false);
+      try {
+        const index = await buildIndex(tab.id);
+        return {
+          ok: true,
+          kind: "buildIndex",
+          status: await cdp.status(tab.id, tab.url),
+          index,
+        };
+      } finally {
+        if (!wasAttached) await cdp.detach(tab.id).catch(() => {});
+      }
     }
 
     case "cdpScreenshot": {

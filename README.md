@@ -8,9 +8,9 @@ name, and the agent runs on whatever OpenAI-compatible endpoint answers — Groq
 OpenRouter, Google AI Studio, LiteLLM, a local LM Studio server, or anything else
 speaking the same wire format.
 
-> **Status: M2.** The panel has privileged access to the page: it attaches over the
-> Chrome DevTools Protocol and captures live screenshots. There is no DOM indexer
-> and no agent yet, so every harness task still reports `not_implemented`.
+> **Status: M3.** The page indexer works: any page becomes a short numbered list of
+> things that can be clicked or typed into. There is no actuation and no agent yet,
+> so every harness task still reports `not_implemented`.
 
 ## Where this is
 
@@ -21,8 +21,9 @@ The build runs through sixteen gated milestones (`docs/browser-agent-build-guide
 | M0 | Test suite + scoring harness | **done** |
 | M1 | Extension scaffold, side panel | **done** |
 | M2 | CDP attach, first screenshot | **done** |
-| M3 | The DOM indexer | next |
-| M4–M6 | Overlays, manual actuation, cursor | |
+| M3 | The DOM indexer | **done** |
+| M4 | The highlight overlay | next |
+| M5–M6 | Manual actuation, cursor | |
 | M7–M10 | Provider layer, agent loop, provider matrix | |
 | M11–M14 | Compression, repair, safety gate, router | |
 | M15 | Packaging and release | |
@@ -43,15 +44,17 @@ bottom exercise the messaging paths the agent will use:
 | **Tab** | panel → background → `chrome.tabs`, refreshes the header |
 | **Page** | panel → background → content script → back |
 
-The **Viewport** card drives the debugger:
+**Tools** under the composer opens the debug drawer:
 
-| Control | What it does |
+| Tool | What it does |
 |---|---|
-| **Attach** | Opens a pinned CDP session and enables the `Page` and `Runtime` domains |
-| **Detach** | Closes it; the yellow banner disappears |
-| **Capture** | `Page.captureScreenshot`. Attaches first if needed, and detaches again afterwards so a one-shot never leaves the banner up |
+| **Attach** / **Detach** | Opens or closes a pinned CDP session |
+| **Index** | Builds the numbered element index the model will act on |
+| **Shot** | `Page.captureScreenshot`. Attaches first if needed, then detaches, so a one-shot never leaves the banner up |
+| **Ping** / **Probe** | Message round trips through the background worker and content script |
 
-Click a capture to enlarge it.
+Results land in the transcript. Click a capture to enlarge it, or an index to
+expand the exact text that will reach the model.
 
 To load a production build manually instead: `npm run build`, then
 `chrome://extensions` → Developer mode → Load unpacked → `.output/chrome-mv3`.
@@ -103,6 +106,45 @@ To check the ground truth yourself, run this in the background worker console:
 ```js
 (await chrome.debugger.getTargets()).filter(t => t.attached)
 ```
+
+## The page indexer
+
+`Runtime.evaluate` injects a self-contained function that turns the page into two
+separate things, and keeping them separate is the point: **the index is for acting,
+the text is for reading.**
+
+The index is a numbered list of interactive elements. The filters that matter, in
+order of value:
+
+1. **Topmost check.** Each candidate's own centre is hit-tested; if the point belongs
+   to something else, the element is covered and gets dropped. This is what stops the
+   agent clicking buttons behind a cookie banner — otherwise the most common and most
+   confusing failure there is, because it presents as the model being stupid.
+2. **Visibility** — zero size, `display:none`, `visibility:hidden`, zero opacity,
+   `inert`, `aria-hidden`.
+3. **Shadow DOM traversal**, including a hit test that descends through shadow roots.
+   Without it the index is mysteriously empty on sites built from web components.
+4. **Same-origin iframe traversal**, with coordinates offset by the frame's position.
+5. **Deduplication** — a link wrapping a button wrapping a span is one thing, not
+   three. Collapses to the outermost when the boxes coincide.
+6. **Label truncation** at 40 characters, drawn from `aria-label`, then
+   `aria-labelledby`, then text, then value, placeholder, title, alt, name.
+
+Ordering is viewport-visible first, then document order, then capped at 40 and
+renumbered. Both sorts are stable, so two runs on an unchanged page produce identical
+output — a moving index would make every step a fresh guess for the model.
+
+A full 40 elements costs ~1,364 tokens at worst and ~286 typically, against the
+2,000-token budget. That budget is not cosmetic: on a free Groq tier of 8,000
+tokens/minute, index size is what decides how many agent steps per minute you get.
+
+### The injected function must stay self-contained
+
+It is shipped by stringifying it, so a bundler hoisting one inner helper to module
+scope produces code that builds, typechecks, and then throws `ReferenceError` inside
+every page it touches. `npm run check:extractor` pulls the real function back out of
+the built bundle and runs it against a stub DOM, so that breakage fails the build
+instead of the browser.
 
 ## The test suite
 
@@ -186,12 +228,14 @@ src/
   entrypoints/
     background/       service worker: message relay
       cdp.ts          the CDP session: attach, detach, screenshot, lifecycle
+      extract.ts      the injected page indexer
     content/          injected into every page; probes and, later, overlays
     sidepanel/        the React panel — where the agent loop will live
-  components/         panel UI
+  components/         panel UI: header, transcript, composer, logo
     ui/               shadcn-style primitives
-  lib/                messaging protocol, CDP types, zustand store, utils
+  lib/                messaging protocol, CDP + index types, zustand store
   styles/theme.css    OKLCH design tokens, light and dark
+public/icon/          toolbar icons, generated by `npm run icons`
 
 tasks.md              the ten tasks — the finish line
 harness/
@@ -204,6 +248,8 @@ harness/
   index.ts            CLI
 scripts/
   check-secrets.ts    the credential boundary, enforced
+  check-extractor.ts  proves the injected indexer survives bundling
+  make-icons.ts       renders the mark to PNG, no image toolchain needed
 docs/
   browser-agent-build-guide.md
 ```

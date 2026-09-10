@@ -19,7 +19,9 @@
     "typecheck:node": "tsc -p tsconfig.node.json",
     "typecheck:ext": "wxt prepare && tsc --noEmit",
     "typecheck": "npm run typecheck:node && npm run typecheck:ext",
-    "check": "npm run typecheck && npm run verify:tasks && npm run check:secrets"
+    "check": "npm run typecheck && npm run verify:tasks && npm run build && npm run check:secrets && npm run check:extractor",
+    "icons": "tsx scripts/make-icons.ts",
+    "check:extractor": "tsx scripts/check-extractor.ts"
   },
   "devDependencies": {
     "@tailwindcss/vite": "^4.3.3",
