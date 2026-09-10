@@ -16,7 +16,14 @@ export interface PageProbe {
   elementCount: number;
 }
 
-export type PanelMessage =
+/**
+ * `tabId` pins the target. Without it the background resolves "the active tab"
+ * on every call, so a user switching tabs mid-run would silently hand the agent
+ * a different page to drive.
+ */
+export type PanelMessage = PanelMessageBody & { tabId?: number };
+
+type PanelMessageBody =
   | { kind: "ping"; sentAt: number }
   | { kind: "activeTab" }
   | { kind: "probePage" }
@@ -27,7 +34,10 @@ export type PanelMessage =
   | { kind: "buildIndex" }
   | { kind: "overlay"; on: boolean }
   | { kind: "command"; command: Command; cursor: boolean }
-  | { kind: "cursor"; on: boolean };
+  | { kind: "cursor"; on: boolean }
+  | { kind: "runStart" }
+  | { kind: "runEnd" }
+  | { kind: "abort" };
 
 export type ContentMessage = { kind: "probePage" };
 
@@ -39,13 +49,26 @@ export type PanelReply =
   | { ok: true; kind: "cdpScreenshot"; status: CdpStatus; shot: Screenshot }
   | { ok: true; kind: "buildIndex"; status: CdpStatus; index: PageIndex }
   | { ok: true; kind: "overlay"; on: boolean; count: number; index?: PageIndex }
-  | { ok: true; kind: "command"; result: ActionResult; index?: PageIndex; overlayOn: boolean }
+  | {
+      ok: true;
+      kind: "command";
+      result: ActionResult;
+      index?: PageIndex;
+      overlayOn: boolean;
+      /** Set when the command moved Tiny onto a different tab. */
+      tabId?: number;
+    }
   | { ok: true; kind: "cursor"; on: boolean }
+  | { ok: true; kind: "run"; running: boolean; status: CdpStatus }
+  | { ok: true; kind: "abort"; stopped: boolean }
   | { ok: false; error: string };
 
 export const CONTENT_READY = "tiny-brow:content-ready";
 
-const PANEL_KINDS: PanelMessage["kind"][] = [
+/** Long-lived port the panel holds open, so the background sees it close. */
+export const PANEL_PORT = "tiny-brow:panel";
+
+const PANEL_KINDS: PanelMessageBody["kind"][] = [
   "ping",
   "activeTab",
   "probePage",
@@ -57,6 +80,9 @@ const PANEL_KINDS: PanelMessage["kind"][] = [
   "overlay",
   "command",
   "cursor",
+  "runStart",
+  "runEnd",
+  "abort",
 ];
 
 export function isPanelMessage(msg: unknown): msg is PanelMessage {

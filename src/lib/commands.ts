@@ -6,6 +6,7 @@ export type Command =
   | { kind: "key"; name: string }
   | { kind: "scroll"; direction: "up" | "down"; amount: number }
   | { kind: "goto"; url: string }
+  | { kind: "newtab"; url: string | null }
   | { kind: "index" }
   | { kind: "help" };
 
@@ -55,7 +56,7 @@ export function resolveKey(name: string): KeySpec | null {
   return KEYS[KEY_ALIASES[k] ?? k] ?? null;
 }
 
-const VERBS = ["click", "type", "key", "scroll", "goto", "index", "help"];
+const VERBS = ["click", "type", "key", "scroll", "goto", "newtab", "index", "help"];
 
 export const COMMAND_HELP = [
   "click N              click element N",
@@ -64,6 +65,7 @@ export const COMMAND_HELP = [
   "key <name>           Enter, Tab, Escape, ArrowDown, …",
   "scroll up|down [px]  wheel the page",
   "goto <url>           navigate this tab",
+  "newtab [url]         open a new tab and drive that instead",
   "index                rebuild the element index",
 ].join("\n");
 
@@ -156,6 +158,20 @@ export function parseCommand(input: string): Parsed | null {
       const url = normaliseUrl(rest.join(" "));
       if (!url) return fail("goto needs a URL, e.g. /goto example.com");
       return { ok: true, command: { kind: "goto", url }, summary: `go to ${url}` };
+    }
+
+    case "newtab": {
+      const raw = rest.join(" ").trim();
+      if (!raw) {
+        return { ok: true, command: { kind: "newtab", url: null }, summary: "open a new tab" };
+      }
+      const url = normaliseUrl(raw);
+      if (!url) return fail(`newtab needs a URL or nothing, got "${raw}"`);
+      return {
+        ok: true,
+        command: { kind: "newtab", url },
+        summary: `open ${url} in a new tab`,
+      };
     }
   }
 

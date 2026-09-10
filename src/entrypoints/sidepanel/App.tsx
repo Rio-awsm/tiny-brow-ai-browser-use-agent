@@ -3,7 +3,7 @@ import { Composer, type ToolId } from "@/components/Composer";
 import { PanelHeader } from "@/components/PanelHeader";
 import { Transcript } from "@/components/Transcript";
 import { TooltipProvider } from "@/components/ui/tooltip";
-import { sendToBackground, type PanelMessage } from "@/lib/messaging";
+import { PANEL_PORT, sendToBackground, type PanelMessage } from "@/lib/messaging";
 import { COMMAND_HELP, parseCommand } from "@/lib/commands";
 import { estimateTokens, serializeIndex } from "@/lib/page-index";
 import { usePanel } from "@/lib/store";
@@ -28,6 +28,9 @@ export function App() {
   const [busyTool, setBusyTool] = useState<ToolId | null>(null);
   const [overlayOn, setOverlayOn] = useState(false);
   const [cursorOn, setCursorOn] = useState(true);
+  // The tab Tiny is driving. It follows the active tab while idle, and a newtab
+  // command retargets it, so a run always names the page it means.
+  const [targetTabId, setTargetTabId] = useState<number | undefined>(undefined);
 
   // A preference, so it outlives the panel rather than resetting every time it
   // is reopened.
@@ -37,21 +40,33 @@ export function App() {
     });
   }, []);
 
-  const refresh = useCallback(async () => {
-    const tabReply = await sendToBackground({ kind: "activeTab" });
-    if (!tabReply.ok || tabReply.kind !== "activeTab") return null;
-    setTab(tabReply.tab);
+  const refresh = useCallback(
+    async (tabId?: number) => {
+      const tabReply = await sendToBackground({ kind: "activeTab", tabId });
+      if (!tabReply.ok || tabReply.kind !== "activeTab") return null;
+      setTab(tabReply.tab);
+      setTargetTabId(tabReply.tab?.id);
 
-    const cdpReply = await sendToBackground({ kind: "cdpStatus" });
-    if (cdpReply.ok && cdpReply.kind === "cdpStatus") setCdp(cdpReply.status);
-    return tabReply.tab;
-  }, [setTab, setCdp]);
+      const cdpReply = await sendToBackground({ kind: "cdpStatus", tabId: tabReply.tab?.id });
+      if (cdpReply.ok && cdpReply.kind === "cdpStatus") setCdp(cdpReply.status);
+      return tabReply.tab;
+    },
+    [setTab, setCdp],
+  );
 
   // A navigation destroys the overlay along with the page it was drawn on, so
   // the toggle has to follow the URL rather than remember what the user clicked.
   useEffect(() => {
     setOverlayOn(false);
   }, [tab?.url, tab?.id]);
+
+  // Held open for as long as the panel is on screen. If it closes mid-run the
+  // background sees the disconnect and releases the debugger, rather than
+  // leaving the banner over a page nobody is driving.
+  useEffect(() => {
+    const port = chrome.runtime.connect({ name: PANEL_PORT });
+    return () => port.disconnect();
+  }, []);
 
   useEffect(() => {
     void refresh();
@@ -85,7 +100,7 @@ export function App() {
             : TOOL_MESSAGE[tool];
     note("sent", `${tool} → background`);
 
-    const reply = await sendToBackground(msg);
+    const reply = await sendToBackground({ ...msg, tabId: targetTabId });
 
     if (!reply.ok) {
       note("error", reply.error);
@@ -175,17 +190,30 @@ export function App() {
       kind: "command",
       command: parsed.command,
       cursor: cursorOn,
+      tabId: targetTabId,
     });
     if (!reply.ok) {
-      note("error", reply.error);
+      if (reply.error === "stopped") note("info", "stopped");
+      else note("error", reply.error);
       await refresh();
     } else if (reply.kind === "command") {
       push({ kind: "action", result: reply.result });
       if (reply.index) push({ kind: "index", index: reply.index });
       setOverlayOn(reply.overlayOn);
+      // A navigation, or a hop to a new tab, changes what is possible here; do
+      // not wait for the poll to notice.
+      await refresh(reply.tabId);
     }
     setRunning(false);
     return true;
+  };
+
+  const stop = async () => {
+    const reply = await sendToBackground({ kind: "abort", tabId: targetTabId });
+    if (reply.ok && reply.kind === "abort" && !reply.stopped) {
+      // Nothing was mid-flight; drop the busy state so the button is honest.
+      setRunning(false);
+    }
   };
 
   const run = async () => {
@@ -217,7 +245,7 @@ export function App() {
           cursorOn={cursorOn}
           onChange={setTask}
           onRun={() => void run()}
-          onStop={() => setRunning(false)}
+          onStop={() => void stop()}
           onTool={runTool}
         />
       </div>

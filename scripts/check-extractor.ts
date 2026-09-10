@@ -152,6 +152,8 @@ function makeStubDom(populated: boolean): Record<string, unknown> {
     createTextNode: (text: string) => ({ textContent: text }),
     elementFromPoint: () => null,
     getElementById: () => null,
+    querySelectorAll: () => [],
+    readyState: "complete",
     title: "Stub",
     body: { innerText: "" },
     documentElement: null,

@@ -87,6 +87,9 @@ Chrome Web Store all reject debugger attachment, and local files need "Allow acc
 to file URLs". The URL is checked before attaching so the panel can say which of
 those applies, rather than surfacing Chrome's generic refusal.
 
+Being on such a page is not a dead end: `goto` works from anywhere, so Tiny can
+navigate itself somewhere it *can* work.
+
 Only one debugger may attach per tab, so opening DevTools on the attached tab takes
 the session away. That arrives as `onDetach`, and the panel reports what happened.
 
@@ -128,9 +131,52 @@ type -k 3 hello      type per keystroke, which fires autocomplete
 key Enter            Enter, Tab, Escape, ArrowDown, …
 scroll up|down [px]  wheel the page
 goto example.com     navigate this tab
+newtab [url]         open a new tab and drive that instead
 index                rebuild the element index
 help                 list the above
 ```
+
+**`goto` and `newtab` need no debugger session.** It uses `chrome.tabs.update` rather than
+`Page.navigate`, so it works on pages Chrome refuses to attach to. Without that, a
+window sitting on the new-tab page is a dead end: nothing can attach, so nothing can
+navigate, so the agent can never start. Every other command needs a session;
+navigation must not. `newtab` retargets Tiny onto the tab it opens.
+
+### Waiting for the page
+
+After every action Tiny waits for the page to be worth reading, in three layers:
+main-frame loading stopped, then no network requests in flight for a quiet period,
+then the element count holding steady. Each layer has its own ceiling, because a
+page with a polling widget never truly goes quiet and must not hang the run — and
+when a layer runs out of time that is reported rather than hidden.
+
+A fixed sleep is the wrong shape here: too short on a slow page, wasted on a fast
+one. Most apparent reasoning failures are timing failures, where the agent reads a
+half-rendered SPA and then gets blamed for what it concluded from it.
+
+### Stopping, and who owns the session
+
+Cancellation is cooperative: the work is a promise chain in the service worker, so
+there is nothing to kill and each phase instead checks whether it should stop. Every
+tab always has a signal — not only during a run — because otherwise Stop would
+silently do nothing for a one-off command. The longest-running parts are the ones
+that need it most: per-keystroke typing and the settle wait both bail out mid-way.
+
+A **run** is the separate concern. During one the debugger stays attached for its
+whole length, because attaching per action would mean an attach/detach cycle and a
+banner flash on every step of a forty-step task. `runStart` pins the session,
+`runEnd` releases it, and a one-off action outside a run still closes its own session
+behind it.
+
+The panel holds a long-lived port open while it is on screen. If it closes mid-run
+the background sees the disconnect and releases the debugger, rather than leaving the
+banner over a page nobody is driving.
+
+### Which tab
+
+Every message names the tab it means. Resolving "the active tab" on each call
+would let a user switching tabs mid-run silently hand the agent a different page to
+drive. The panel follows the active tab while idle, and `newtab` moves it.
 
 Every command that targets an element **scrolls it into view, then re-reads its
 coordinates**. Skipping that re-read is the classic bug: the position recorded when
@@ -334,6 +380,7 @@ src/
       overlay.ts      the injected highlight overlay
       actions.ts      click, type, key, scroll, navigate over CDP Input
       cursor.ts       the injected animated cursor
+      settle.ts       the waiting layer: network quiet, then DOM stability
     content/          injected into every page; probes and, later, overlays
     sidepanel/        the React panel — where the agent loop will live
   components/         panel UI: header, transcript, composer, logo

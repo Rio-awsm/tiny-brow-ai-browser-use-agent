@@ -165,6 +165,9 @@ export async function attach(tabId: number, url: string, pinned: boolean) {
   try {
     await send(tabId, "Page.enable");
     await send(tabId, "Runtime.enable");
+    // Feeds the settle tracker; without it there is no way to know the page
+    // has stopped fetching.
+    await send(tabId, "Network.enable");
   } catch (err) {
     await detach(tabId);
     throw new CdpError(`Attached but could not enable domains: ${message(err)}`);

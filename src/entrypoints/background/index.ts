@@ -1,7 +1,19 @@
 import * as cdp from "./cdp";
 import { buildIndex } from "./extract";
 import { hideHighlights, isOverlayOn, showHighlights } from "./overlay";
-import { NO_INDEX, runCommand } from "./actions";
+import { navigateTab, openTab, NO_INDEX, runCommand } from "./actions";
+import { registerSettleTracking, waitForSettle } from "./settle";
+import {
+  Aborted,
+  abortRun,
+  beginAction,
+  endAction,
+  endRun,
+  isSession,
+  registerPanelLifecycle,
+  signalFor,
+  startRun,
+} from "./run";
 import * as cursor from "./cursor";
 import {
   isPanelMessage,
@@ -17,6 +29,8 @@ export default defineBackground(() => {
     .catch((err) => console.error("[tiny-brow] setPanelBehavior failed", err));
 
   cdp.registerCdpLifecycle();
+  registerSettleTracking();
+  registerPanelLifecycle();
 
   chrome.runtime.onMessage.addListener((msg: unknown, sender, sendResponse) => {
     if (!isPanelMessage(msg)) return false;
@@ -55,6 +69,8 @@ export default defineBackground(() => {
 });
 
 async function handle(msg: PanelMessage): Promise<PanelReply> {
+  const requireTarget = () => requireTab(msg.tabId);
+
   switch (msg.kind) {
     case "ping":
       return { ok: true, kind: "pong", sentAt: msg.sentAt, receivedAt: Date.now() };
@@ -63,7 +79,7 @@ async function handle(msg: PanelMessage): Promise<PanelReply> {
       return { ok: true, kind: "activeTab", tab: await activeTab() };
 
     case "probePage": {
-      const tab = await requireTab();
+      const tab = await requireTarget();
       const probe = await chrome.tabs.sendMessage(tab.id, {
         kind: "probePage",
       } satisfies ContentMessage);
@@ -80,19 +96,19 @@ async function handle(msg: PanelMessage): Promise<PanelReply> {
     }
 
     case "cdpAttach": {
-      const tab = await requireTab();
+      const tab = await requireTarget();
       await cdp.attach(tab.id, tab.url, true);
       return { ok: true, kind: "cdpStatus", status: await cdp.status(tab.id, tab.url) };
     }
 
     case "cdpDetach": {
-      const tab = await requireTab();
+      const tab = await requireTarget();
       await cdp.detach(tab.id);
       return { ok: true, kind: "cdpStatus", status: await cdp.status(tab.id, tab.url) };
     }
 
     case "buildIndex": {
-      const tab = await requireTab();
+      const tab = await requireTarget();
       // Indexing needs a session; keep whatever mode the tab is already in.
       const wasAttached = (await cdp.status(tab.id, tab.url)).state === "attached";
       await cdp.attach(tab.id, tab.url, false);
@@ -109,31 +125,64 @@ async function handle(msg: PanelMessage): Promise<PanelReply> {
       }
     }
 
+    case "runStart": {
+      const tab = await requireTarget();
+      await startRun(tab.id, tab.url);
+      return { ok: true, kind: "run", running: true, status: await cdp.status(tab.id, tab.url) };
+    }
+
+    case "runEnd": {
+      const tab = await requireTarget();
+      await endRun(tab.id);
+      return { ok: true, kind: "run", running: false, status: await cdp.status(tab.id, tab.url) };
+    }
+
+    case "abort": {
+      const tab = await requireTarget();
+      return { ok: true, kind: "abort", stopped: abortRun(tab.id) };
+    }
+
     case "command": {
-      const tab = await requireTab();
-      const wasAttached = (await cdp.status(tab.id, tab.url)).state === "attached";
-      await cdp.attach(tab.id, tab.url, false);
+      const tab = await requireTarget();
+
+      // Handled before any attach, so it works on pages Chrome will not let us
+      // debug — otherwise a new-tab page is a dead end the agent cannot escape.
+      if (msg.command.kind === "goto") {
+        const result = await navigateTab(tab.id, msg.command.url);
+        return { ok: true, kind: "command", result, overlayOn: false };
+      }
+      if (msg.command.kind === "newtab") {
+        const { result, tabId } = await openTab(msg.command.url);
+        return { ok: true, kind: "command", result, overlayOn: false, tabId };
+      }
+
+      const inRun = isSession(tab.id);
+      const signal = signalFor(tab.id);
+      const wasAttached = inRun || (await cdp.status(tab.id, tab.url)).state === "attached";
+      beginAction(tab.id);
+      await cdp.attach(tab.id, tab.url, inRun);
       try {
         const hadOverlay = await isOverlayOn(tab.id);
 
         let result;
         try {
-          result = await runCommand(tab.id, msg.command, msg.cursor);
+          result = await runCommand(tab.id, msg.command, msg.cursor, signal);
         } catch (err) {
+          if (err instanceof Aborted) throw err;
           // Only index when the page has none. Re-indexing first would renumber
           // everything under a user who is acting on numbers they can see.
           if (!(err instanceof Error) || !err.message.includes(NO_INDEX)) throw err;
           await buildIndex(tab.id);
-          result = await runCommand(tab.id, msg.command, msg.cursor);
+          result = await runCommand(tab.id, msg.command, msg.cursor, signal);
         }
 
-        // A navigation invalidates everything; let the panel re-index when the
-        // new page is there.
-        if (msg.command.kind === "goto") {
-          return { ok: true, kind: "command", result, overlayOn: false };
+        // Wait for the page to be worth reading before re-indexing it.
+        const settle = await waitForSettle(tab.id, { signal });
+        if (settle.timedOut) {
+          result.detail = [result.detail, `${settle.timedOut} never settled (${settle.tookMs}ms)`]
+            .filter(Boolean)
+            .join(" · ");
         }
-
-        await new Promise((r) => setTimeout(r, 250));
         const index = await buildIndex(tab.id);
         if (hadOverlay) await showHighlights(tab.id);
         // A click that navigated took the cursor with it; put it back.
@@ -145,7 +194,7 @@ async function handle(msg: PanelMessage): Promise<PanelReply> {
     }
 
     case "cursor": {
-      const tab = await requireTab();
+      const tab = await requireTarget();
       const wasAttached = (await cdp.status(tab.id, tab.url)).state === "attached";
       await cdp.attach(tab.id, tab.url, false);
       try {
@@ -153,12 +202,14 @@ async function handle(msg: PanelMessage): Promise<PanelReply> {
         else await cursor.remove(tab.id);
         return { ok: true, kind: "cursor", on: msg.on };
       } finally {
+        endAction(tab.id);
+        // A run owns the session; only a one-off action closes it behind itself.
         if (!wasAttached) await cdp.detach(tab.id).catch(() => {});
       }
     }
 
     case "overlay": {
-      const tab = await requireTab();
+      const tab = await requireTarget();
       const wasAttached = (await cdp.status(tab.id, tab.url)).state === "attached";
       await cdp.attach(tab.id, tab.url, false);
       try {
@@ -178,7 +229,7 @@ async function handle(msg: PanelMessage): Promise<PanelReply> {
     }
 
     case "cdpScreenshot": {
-      const tab = await requireTab();
+      const tab = await requireTarget();
       const shot = await cdp.screenshot(tab.id, tab.url);
       return {
         ok: true,
@@ -196,7 +247,16 @@ async function activeTab(): Promise<TabInfo | null> {
   return { id: tab.id, url: tab.url ?? "", title: tab.title ?? "" };
 }
 
-async function requireTab(): Promise<TabInfo> {
+/** The pinned tab when the panel named one, otherwise whatever is in front. */
+async function requireTab(tabId?: number): Promise<TabInfo> {
+  if (tabId !== undefined) {
+    try {
+      const tab = await chrome.tabs.get(tabId);
+      return { id: tabId, url: tab.url ?? "", title: tab.title ?? "" };
+    } catch {
+      throw new Error(`Tab ${tabId} is gone — it was closed during the run.`);
+    }
+  }
   const tab = await activeTab();
   if (!tab) throw new Error("No active tab.");
   return tab;

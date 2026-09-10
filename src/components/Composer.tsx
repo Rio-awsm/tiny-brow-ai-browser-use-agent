@@ -169,9 +169,15 @@ export function Composer({
       )}
 
       {restricted && cdp?.reason && (
-        <p className="border-b border-border bg-warning/8 px-3 py-1.5 text-[10px] leading-relaxed text-warning">
-          {cdp.reason}
-        </p>
+        <div className="border-b border-border bg-warning/8 px-3 py-1.5">
+          <p className="text-[10px] leading-relaxed text-warning">{cdp.reason}</p>
+          <button
+            onClick={() => onChange("goto example.com")}
+            className="mt-1 text-[10px] font-medium text-warning underline underline-offset-2 hover:opacity-80"
+          >
+            Navigation still works from here — try goto
+          </button>
+        </div>
       )}
 
       <div className="p-2.5">

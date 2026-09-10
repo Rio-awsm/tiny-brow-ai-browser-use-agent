@@ -1,6 +1,8 @@
 import { resolveKey, type Command } from "@/lib/commands";
 import { send } from "./cdp";
 import * as cursor from "./cursor";
+import { forgetActivity } from "./settle";
+import { throwIfAborted } from "./run";
 
 /** Also spelled literally inside `focusIndexed`, which cannot import. */
 export const NO_INDEX = "no index on this page yet";
@@ -187,14 +189,21 @@ async function pressKey(tabId: number, name: string) {
   await send(tabId, "Input.dispatchKeyEvent", { ...shared, type: "keyUp" });
 }
 
-async function typeText(tabId: number, text: string, mode: "insert" | "keys") {
+async function typeText(
+  tabId: number,
+  text: string,
+  mode: "insert" | "keys",
+  signal?: AbortSignal,
+) {
   if (mode === "insert") {
     await send(tabId, "Input.insertText", { text });
     return;
   }
   // Per-character, because some search boxes only open their autocomplete on a
-  // real keydown and ignore a bulk insert entirely.
+  // real keydown and ignore a bulk insert entirely. Also the longest thing an
+  // action does, so it is the one that most needs to be interruptible.
   for (const ch of text) {
+    throwIfAborted(signal);
     const code = ch.toUpperCase().charCodeAt(0);
     await send(tabId, "Input.dispatchKeyEvent", {
       type: "keyDown",
@@ -218,8 +227,10 @@ export async function runCommand(
   tabId: number,
   command: Command,
   showCursor: boolean,
+  signal?: AbortSignal,
 ): Promise<ActionResult> {
   const started = performance.now();
+  throwIfAborted(signal);
   // Re-created on demand, which is also how it comes back after a navigation.
   if (showCursor) await cursor.ensure(tabId);
   const done = (summary: string, extra: Partial<ActionResult> = {}): ActionResult => ({
@@ -231,6 +242,7 @@ export async function runCommand(
   switch (command.kind) {
     case "click": {
       const t = await target(tabId, command.index);
+      throwIfAborted(signal);
       await clickAt(tabId, t.x, t.y, showCursor, `Tiny · clicking ${describe(t)}`.slice(0, 44));
       return done(`clicked [${command.index}] ${describe(t)}`, {
         at: { x: t.x, y: t.y },
@@ -241,9 +253,10 @@ export async function runCommand(
 
     case "type": {
       const t = await target(tabId, command.index, true);
+      throwIfAborted(signal);
       await clickAt(tabId, t.x, t.y, showCursor, "Tiny · typing");
       await sleep(80);
-      await typeText(tabId, command.text, command.mode);
+      await typeText(tabId, command.text, command.mode, signal);
       return done(
         `typed ${JSON.stringify(command.text)} into [${command.index}] ${describe(t)}`,
         {
@@ -275,13 +288,74 @@ export async function runCommand(
     }
 
     case "goto":
-      await send(tabId, "Page.navigate", { url: command.url });
-      return done(`navigated to ${command.url}`);
+    case "newtab":
+      throw new Error(`${command.kind} is handled without a debugger session, not here`);
 
     case "index":
     case "help":
       throw new Error(`"${command.kind}" is handled in the panel, not here`);
   }
+}
+
+/**
+ * Navigation deliberately uses `chrome.tabs.update` rather than `Page.navigate`,
+ * so it needs no debugger session at all.
+ *
+ * That is what lets Tiny leave a page it cannot attach to. Chrome refuses CDP on
+ * its own pages, so a fresh window sitting on the new-tab page would otherwise be
+ * a dead end: nothing can attach, so nothing can navigate, so nothing can ever
+ * start. Every other action requires a session; this one must not.
+ */
+export async function navigateTab(tabId: number, url: string): Promise<ActionResult> {
+  const started = performance.now();
+  await chrome.tabs.update(tabId, { url });
+  const loaded = await waitForLoad(tabId);
+  return {
+    summary: `navigated to ${url}`,
+    detail: loaded ? undefined : "page was still loading when the wait timed out",
+    tookMs: Math.round(performance.now() - started),
+  };
+}
+
+/**
+ * Opens a tab and hands back its id, so the panel can retarget onto it.
+ * Like navigation this needs no debugger session, which is what makes it usable
+ * as an escape from a page Chrome will not let us attach to.
+ */
+export async function openTab(
+  url: string | null,
+): Promise<{ result: ActionResult; tabId: number }> {
+  const started = performance.now();
+  const tab = await chrome.tabs.create({ url: url ?? undefined, active: true });
+  if (tab.id === undefined) throw new Error("Chrome created a tab without an id.");
+
+  // A brand-new tab has no history with the settle tracker.
+  forgetActivity(tab.id);
+  const loaded = url ? await waitForLoad(tab.id) : true;
+
+  return {
+    tabId: tab.id,
+    result: {
+      summary: url ? `opened ${url} in a new tab` : "opened a new tab",
+      detail: loaded ? `now driving tab ${tab.id}` : "opened, but still loading",
+      tookMs: Math.round(performance.now() - started),
+    },
+  };
+}
+
+function waitForLoad(tabId: number, timeoutMs = 15_000): Promise<boolean> {
+  return new Promise((resolve) => {
+    const finish = (loaded: boolean) => {
+      chrome.tabs.onUpdated.removeListener(onUpdated);
+      clearTimeout(timer);
+      resolve(loaded);
+    };
+    const onUpdated = (id: number, info: { status?: string }) => {
+      if (id === tabId && info.status === "complete") finish(true);
+    };
+    const timer = setTimeout(() => finish(false), timeoutMs);
+    chrome.tabs.onUpdated.addListener(onUpdated);
+  });
 }
 
 function describe(t: Target): string {
