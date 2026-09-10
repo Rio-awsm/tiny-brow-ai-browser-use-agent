@@ -109,13 +109,19 @@ async function runAttempt(
 
   const totalMs = performance.now() - t0;
   const requestMs = outcome.steps.reduce((n, s) => n + s.requestMs, 0);
-  // Not measured yet — the browser and rate-limit splits land with M9/M10.
-  // Kept in the shape from day one so the columns never need backfilling.
+  const prefillMs = outcome.steps.reduce((n, s) => n + (s.promptMs ?? 0), 0);
+  const generationMs = outcome.steps.reduce((n, s) => n + (s.completionMs ?? 0), 0);
+
+  // Anything not spent waiting on the provider was spent driving the browser:
+  // CDP round trips, indexing, and the settle wait. Derived rather than
+  // measured, because the browser side is not ours to instrument from here.
   const timing: Timing = {
     totalMs: round(totalMs),
     requestMs: round(requestMs),
+    prefillMs: round(prefillMs),
+    generationMs: round(generationMs),
     rateLimitWaitMs: 0,
-    browserMs: 0,
+    browserMs: round(Math.max(0, totalMs - requestMs)),
     harnessMs: round(Math.max(0, totalMs - requestMs)),
   };
 

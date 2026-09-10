@@ -8,9 +8,9 @@ name, and the agent runs on whatever OpenAI-compatible endpoint answers — Groq
 OpenRouter, Google AI Studio, LiteLLM, a local LM Studio server, or anything else
 speaking the same wire format.
 
-> **Status: M9.** The loop is closed — give Tiny a task and it runs by itself until
-> it finishes, hits the step cap, or you stop it. Phase 3 is complete. Phase 4 is
-> about closing the gap between "it runs" and "it works".
+> **Status: M10.** The harness now drives the real agent, so the suite can be scored
+> on any backend and the results compared side by side. The numbers below are yours
+> to generate — see [Scoring the matrix](#scoring-the-matrix).
 >
 > The extension is called **Tiny** in the UI; `tiny-brow` is the project name.
 
@@ -30,7 +30,8 @@ The build runs through sixteen gated milestones (`docs/browser-agent-build-guide
 | M7 | The provider layer | **done** |
 | M8 | Single-step decision | **done** |
 | M9 | Close the loop | **done** |
-| M10 | The provider matrix | next |
+| M10 | The provider matrix | **done** |
+| M11 | Context compression | next |
 | M7–M10 | Provider layer, agent loop, provider matrix | |
 | M11–M14 | Compression, repair, safety gate, router | |
 | M15 | Packaging and release | |
@@ -263,9 +264,32 @@ manual commands use and records a one-line summary; pressing Run again asks for 
 next step. Rejecting re-asks with the rejection stated, so it proposes something
 different rather than repeating itself.
 
+### When only you can do it
+
+Tiny cannot sign in, and it should not try. A login page is the worst kind of wall for
+an agent: no listed element makes progress, so every step looks locally reasonable
+and the run loops until the step cap.
+
+So a sign-in page, a captcha or a two-factor prompt **stops the run and asks you**.
+You log in yourself in the tab and press **continue** — the run picks up from there
+with its history intact, re-reading the page you left it on. **Skip** carries on
+without, **Stop** ends the run as `needs_user`.
+
+Detection is in code, not left to the model: known auth hosts, `/login`-shaped paths,
+and any page carrying a password or one-time-code field. On top of that, a run that
+proposes the same action on the same page three times hands over too, rather than
+burning the cap.
+
+**Typing a password, PIN, OTP or card number is refused in code**, whatever the page
+or the prompt says. Model instructions get forgotten under long context; a check in
+`validateAction` does not.
+
+An unattended run — the scoring harness — answers "stop" immediately, because a task
+that needs a human is a real result rather than something to hang on.
+
 ### The action schema
 
-Seven verbs — `click`, `type`, `scroll`, `navigate`, `extract`, `done`, `fail` — and
+Eight verbs — `click`, `type`, `scroll`, `navigate`, `extract`, `done`, `fail` — and
 no more. Every extra verb is another thing to pick wrongly, and the `enum` on the name
 is what stops the model inventing one.
 
@@ -468,6 +492,73 @@ A result is never a bare task score. It is a **`(task, provider, model)` triple*
 with BYOK you are never scoring one system, you are scoring a family of them, and
 "it works" is only ever true of a specific backend.
 
+## Scoring the matrix
+
+The harness lives in Node and the agent lives in a browser extension, so they meet
+over a local HTTP bridge: the harness hands out one task at a time, the panel runs it
+with the real loop against the real browser, and posts the outcome back. That keeps
+the scorer as the scorer — the `(task, provider, model)` triple, the timing split, the
+failure taxonomy all apply unchanged, because the bridge is just another
+`AgentDriver`.
+
+```bash
+npm run bench      # score the whole suite on the backend in .env
+npm run matrix     # compare every run recorded so far
+```
+
+**To pass flags, run the script directly.** npm consumes `--provider` and `--model`
+as its own config before they reach the harness — on Windows it drops the flag names
+and forwards only the bare values, and no amount of quoting or `--` gets around it:
+
+```bash
+npx tsx harness/index.ts --driver bridge --provider lmstudio --model your-loaded-model
+npx tsx harness/index.ts --driver bridge --task T01 --task T02
+npx tsx harness/index.ts --compare
+```
+
+Every run prints the backend it resolved before it starts, so a lost flag is visible
+immediately rather than at the end of a scored suite. Passing them through npm now
+explains the problem and prints the working command instead of crashing.
+
+Then in the browser: open the side panel, **Tools → Bench**. It asks once for
+permission to reach `127.0.0.1:8787`, connects, and starts taking work.
+
+The harness sends the backend with each task, so `--provider` actually switches what
+the extension talks to. Your saved settings are untouched — but the extension still
+needs host permission for that origin, so configure each backend once in Settings
+before scoring it.
+
+### What the matrix shows
+
+```
+  PASS RATE
+
+    TASK  SLUG              A     B
+    ----  ----------------  ----  --------------------
+    T01   page-title        PASS  fail wrong_reasoning
+
+  WHERE BACKENDS DISAGREE
+
+    T01 page-title: passes on openai/gpt-oss-20b; fails on gemma-4-e4b-it (wrong_reasoning)
+
+  STEP LATENCY, ms
+
+    BACKEND                  STEPS  TOTAL  REQUEST  PREFILL  GEN   BROWSER
+    -----------------------  -----  -----  -------  -------  ----  -------
+    groq/openai/gpt-oss-20b  6.0    1180   700      110      470   480
+    lmstudio/gemma-4-e4b-it  9.0    45000  44000    40000    3800  1000
+```
+
+The **gap** is the artefact, not the score. A task that passes on one backend and
+fails on another is telling you something specific about that model, and the named
+failure mode is the useful half.
+
+Latency is split because a single elapsed number cannot separate prefill from
+generation, and those two want opposite fixes — prefill is cut by a smaller prompt,
+generation by a smaller answer or a faster model. Prefill and generation are only
+filled in by providers that report them; a dash means the provider said nothing,
+rather than a zero that would read as a measurement.
+
 ## Running the harness
 
 ```bash
@@ -480,16 +571,18 @@ npm run harness -- --provider lmstudio --model gemma-4-e4b-it
 npm run harness -- --help
 ```
 
-Two drivers ship today and neither touches a browser or a model:
+Three drivers ship:
 
+- **`bridge`** — the real agent, in your browser, over the local bridge. This is what
+  scores the matrix.
 - **`stub`** — every attempt fails with `not_implemented`. The honest state of the
   project, and proof the harness runs end to end before any agent exists.
 - **`oracle`** — hand-written correct answers for each auto-scored task. It exists
   so a green run can be told apart from a harness that scores everything `fail`
   because a `check` predicate is broken. Without it, "all fail" is unfalsifiable.
 
-From M9 the real agent implements the same `AgentDriver` interface and no scoring
-code changes.
+All three implement the same `AgentDriver` interface, which is why no scoring code
+changed when the real agent arrived.
 
 Each run writes a JSON file to `harness-results/` with the backend baked into both
 the filename and the payload, because the M10 matrix compares runs made hours apart.
@@ -557,6 +650,8 @@ public/icon/          toolbar icons, generated by `npm run icons`
 tasks.md              the ten tasks — the finish line
 harness/
   types.ts            the contract; failure taxonomy; the AgentDriver seam
+  bridge.ts           local HTTP bridge to the agent in the browser
+  compare.ts          the provider matrix and the gaps between backends
   tasks.ts            the suite, machine-readable
   config.ts           backend presets and resolution (the only reader of .env)
   driver.ts           stub and oracle drivers

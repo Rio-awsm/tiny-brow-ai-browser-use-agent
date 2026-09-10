@@ -1,7 +1,7 @@
 import { useState } from "react";
 import {
   ArrowDown, ArrowUp, ChevronDown, CircleCheck, CircleSlash, Compass, Flag,
-  Keyboard, Loader2, MousePointerClick, Quote, TriangleAlert,
+  Keyboard, Loader2, MessageCircleQuestion, MousePointerClick, Quote, TriangleAlert,
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { describeAction } from "@/lib/agent";
@@ -11,7 +11,8 @@ type Step = Extract<PanelEvent, { kind: "step" }>;
 
 const ICON = {
   click: MousePointerClick, type: Keyboard, scroll: ArrowDown, navigate: Compass,
-  extract: Quote, done: CircleCheck, fail: Flag,
+  extract: Quote,
+  ask: MessageCircleQuestion, done: CircleCheck, fail: Flag,
 } as const;
 
 export function StepCard({ step }: { step: Step }) {
@@ -88,6 +89,7 @@ export function RunSummary({ event }: { event: Extract<PanelEvent, { kind: "summ
   const label = {
     done: "Task complete", failed: "Could not finish", stopped: "Stopped",
     step_cap: "Hit the step cap", error: "Run error",
+    needs_user: "Needs you",
   }[outcome.status];
 
   return (

@@ -4,19 +4,21 @@
  *
  * M0 ships two, and neither touches a browser or a model:
  *
- *   stub   — every attempt fails with `not_implemented`. This is the honest
- *            state of the project and it is what proves the harness runs
- *            end to end before any agent exists.
+ *   bridge — the real agent, running in the extension, reached over a local
+ *            HTTP bridge. This is what M10 scores.
+ *   stub   — every attempt fails with `not_implemented`. What proved the
+ *            harness ran end to end before any agent existed.
  *   oracle — every auto-scored task returns a hand-written correct answer.
  *            Nothing to do with the agent; it exists so a green run can be
  *            distinguished from a harness that is scoring everything `fail`
  *            because the `check` predicates are broken. Without it, "all
  *            fail" is unfalsifiable.
  *
- * From M9 the real loop implements the same `AgentDriver` interface and no
- * scoring code changes.
+ * All three implement the same `AgentDriver` interface, so no scoring code
+ * changed when the real agent arrived.
  */
 
+import { BridgeDriver } from "./bridge.js";
 import type {
   AgentDriver,
   AgentOutcome,
@@ -143,6 +145,8 @@ export class OracleDriver implements AgentDriver {
 export const DRIVERS: Record<string, () => AgentDriver> = {
   stub: () => new StubDriver(),
   oracle: () => new OracleDriver(),
+  // The real agent, driven over a local bridge because it lives in the browser.
+  bridge: () => new BridgeDriver(),
 };
 
 export function makeDriver(name: string): AgentDriver {

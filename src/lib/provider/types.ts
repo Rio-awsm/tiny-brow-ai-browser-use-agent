@@ -77,6 +77,22 @@ export interface TokenUsage {
   cachedPrompt?: number;
 }
 
+/**
+ * Server-side timing, where the provider reports it.
+ *
+ * A single elapsed number cannot separate prefill from generation, and those
+ * two want opposite fixes: prefill is cut by a smaller prompt, generation by a
+ * smaller answer or a faster model. Groq reports all three; most providers
+ * report none, and the fields are simply absent rather than guessed at.
+ */
+export interface ServerTimings {
+  queueMs?: number;
+  /** Prompt processing — prefill. Dominates on a local backend. */
+  promptMs?: number;
+  /** Token generation. */
+  completionMs?: number;
+}
+
 export interface Message {
   role: "system" | "user" | "assistant";
   content: string;
@@ -97,6 +113,8 @@ export interface CompleteOptions<T> {
 export interface CompleteResult<T> {
   data: T;
   usage: TokenUsage;
+  /** What the provider said it spent, as opposed to what we measured. */
+  timings: ServerTimings;
   rateLimit: RateLimit;
   requestMs: number;
   model: string;

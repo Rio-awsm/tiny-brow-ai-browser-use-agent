@@ -25,6 +25,7 @@ import type { NoteLevel, PanelEvent } from "@/lib/store";
 import type { Screenshot } from "@/lib/cdp-types";
 import type { ActionResult } from "@/entrypoints/background/actions";
 import { ProposalCard } from "@/components/ProposalCard";
+import { AskCard } from "@/components/AskCard";
 import { RunSummary, StepCard } from "@/components/StepCard";
 
 const NOTE: Record<NoteLevel, { icon: typeof Info; tone: string }> = {
@@ -39,9 +40,16 @@ interface TranscriptProps {
   busy: boolean;
   onExecute: (id: number) => void;
   onReject: (id: number) => void;
+  onAnswerAsk: (id: number, reply: import("@/lib/agent/loop").AskReply) => void;
 }
 
-export function Transcript({ events, busy, onExecute, onReject }: TranscriptProps) {
+export function Transcript({
+  events,
+  busy,
+  onExecute,
+  onReject,
+  onAnswerAsk,
+}: TranscriptProps) {
   const endRef = useRef<HTMLDivElement>(null);
   const [zoom, setZoom] = useState<Screenshot | null>(null);
 
@@ -73,6 +81,15 @@ export function Transcript({ events, busy, onExecute, onReject }: TranscriptProp
                 return <HelpCard key={e.id} text={e.text} />;
               case "step":
                 return <StepCard key={e.id} step={e} />;
+              case "ask":
+                return (
+                  <AskCard
+                    key={e.id}
+                    request={e.request}
+                    answer={e.answer}
+                    onAnswer={(reply) => onAnswerAsk(e.id, reply)}
+                  />
+                );
               case "summary":
                 return <RunSummary key={e.id} event={e} />;
               case "proposal":

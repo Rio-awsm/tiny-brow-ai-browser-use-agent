@@ -1,11 +1,49 @@
 import type { Command } from "@/lib/commands";
 import type { PageIndex } from "@/lib/page-index";
-import { makeProvider, type ProviderConfig, type TokenUsage } from "@/lib/provider";
+import {
+  makeProvider,
+  type ProviderConfig,
+  type ServerTimings,
+  type TokenUsage,
+} from "@/lib/provider";
 import { buildMessages, type HistoryEntry } from "./prompt";
 import { ActionSchema, validateAction, type AgentAction } from "./schema";
 
 export * from "./schema";
 export { SYSTEM_PROMPT, buildMessages, historyLine, type HistoryEntry } from "./prompt";
+
+/** Hosts and paths that exist to authenticate a human, not an agent. */
+const AUTH_HOST = /(^|\.)accounts\.google\.com$|(^|\.)login\.|(^|\.)signin\.|(^|\.)auth\./i;
+const AUTH_PATH = /\/(login|log-in|signin|sign-in|signup|sign-up|register|auth|oauth|sso|challenge|verify)(\/|$|\?)/i;
+
+/**
+ * Recognises a page that is asking a human to prove who they are.
+ *
+ * Detected in code rather than left to the model, because this is exactly the
+ * wall it will otherwise batter itself against: no listed element makes
+ * progress, so every step looks locally reasonable and the run loops until the
+ * cap. Tiny cannot and must not sign in — the user does that.
+ */
+export function detectAuthWall(page: PageIndex): string | null {
+  let host = "";
+  let path = "";
+  try {
+    const url = new URL(page.url);
+    host = url.host;
+    path = url.pathname;
+  } catch {
+    /* a page with no parseable URL is not an auth wall */
+  }
+
+  const secretField = page.elements.find((e) =>
+    /password|passcode|one[- ]?time|otp/i.test(`${e.role} ${e.note} ${e.label}`),
+  );
+
+  if (secretField) return "This page is asking for a password or a one-time code.";
+  if (host && AUTH_HOST.test(host)) return `${host} is a sign-in page.`;
+  if (path && AUTH_PATH.test(path)) return "This page is a sign-in or registration flow.";
+  return null;
+}
 
 /**
  * Stands in for a page Chrome will not let us inspect.
@@ -34,6 +72,8 @@ export interface Proposal {
   problem: string | null;
   usage: TokenUsage;
   requestMs: number;
+  /** Prefill and generation split, where the provider reports it. */
+  timings: ServerTimings;
   model: string;
   /** Prompt tokens the provider served from its cache, where reported. */
   cached: number;
@@ -67,9 +107,10 @@ export async function propose(input: ProposeInput): Promise<Proposal> {
   return {
     action: result.data,
     // Decoding guarantees the shape; whether the chosen index exists is ours to check.
-    problem: validateAction(result.data, input.page.elements.length)?.message ?? null,
+    problem: validateAction(result.data, input.page.elements)?.message ?? null,
     usage: result.usage,
     requestMs: result.requestMs,
+    timings: result.timings,
     model: result.model,
     cached: result.usage.cachedPrompt ?? 0,
     promptChars: messages.reduce((n, m) => n + m.content.length, 0),

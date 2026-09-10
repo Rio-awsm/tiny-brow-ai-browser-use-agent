@@ -38,10 +38,13 @@ export interface Preset {
   modelEnv?: string;
   defaultModel?: string;
   extraParams?: Record<string, unknown>;
+  /** Local endpoints authenticate nothing; demanding a key would block them. */
+  needsKey?: boolean;
 }
 
 export const PRESETS: Record<string, Preset> = {
   groq: {
+    needsKey: true,
     name: "groq",
     baseUrl: "https://api.groq.com/openai/v1",
     keyEnv: "GROQ_API_KEY",
@@ -54,6 +57,7 @@ export const PRESETS: Record<string, Preset> = {
     extraParams: { include_reasoning: false, reasoning_effort: "low" },
   },
   openrouter: {
+    needsKey: true,
     name: "openrouter",
     baseUrl: "https://openrouter.ai/api/v1",
     keyEnv: "OPENROUTER_API_KEY",
@@ -62,6 +66,7 @@ export const PRESETS: Record<string, Preset> = {
     extraParams: { require_parameters: true },
   },
   google: {
+    needsKey: true,
     name: "google",
     baseUrl: "https://generativelanguage.googleapis.com/v1beta/openai",
     keyEnv: "GOOGLE_API_KEY",
@@ -69,12 +74,14 @@ export const PRESETS: Record<string, Preset> = {
     defaultModel: "gemini-2.5-flash",
   },
   litellm: {
+    needsKey: false,
     name: "litellm",
     baseUrl: "http://127.0.0.1:4000/v1",
     keyEnv: "LITELLM_API_KEY",
     modelEnv: "LITELLM_MODEL",
   },
   lmstudio: {
+    needsKey: false,
     name: "lmstudio",
     baseUrl: "http://127.0.0.1:1234/v1",
     keyEnv: "LMSTUDIO_API_KEY",
@@ -151,6 +158,7 @@ export interface ConfigProblem {
  */
 export function validateBackend(b: BackendConfig): ConfigProblem[] {
   const problems: ConfigProblem[] = [];
+  const preset = PRESETS[b.provider];
   if (!b.baseUrl) {
     problems.push({ field: "baseUrl", message: "no base URL — set LLM_BASE_URL or pass --base-url" });
   } else if (!/^https?:\/\//.test(b.baseUrl)) {
@@ -161,9 +169,9 @@ export function validateBackend(b: BackendConfig): ConfigProblem[] {
   if (!b.model) {
     problems.push({ field: "model", message: "no model — set LLM_MODEL or pass --model" });
   }
-  if (!b.apiKey) {
+  if (!b.apiKey && preset?.needsKey !== false) {
     problems.push({ field: "apiKey", message: "no API key found in the environment" });
-  } else if (/your_key_here/.test(b.apiKey)) {
+  } else if (b.apiKey && /your_key_here/.test(b.apiKey)) {
     problems.push({ field: "apiKey", message: "key is still the .env.example placeholder" });
   }
   return problems;

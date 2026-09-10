@@ -2,6 +2,7 @@ import { useState } from "react";
 import {
   ArrowUp,
   Bot,
+  FlaskConical,
   Camera,
   ChevronUp,
   Layers,
@@ -30,6 +31,7 @@ export type ToolId =
   | "index"
   | "overlay"
   | "cursor"
+  | "bench"
   | "ping"
   | "tab"
   | "page";
@@ -149,6 +151,14 @@ export function Composer({
             label="Ping"
             icon={Zap}
             tip="Round-trip a message through the background worker"
+            busyTool={busyTool}
+            onTool={onTool}
+          />
+          <Tool
+            id="bench"
+            label="Bench"
+            icon={FlaskConical}
+            tip="Connect to the scoring harness running on 127.0.0.1:8787"
             busyTool={busyTool}
             onTool={onTool}
           />

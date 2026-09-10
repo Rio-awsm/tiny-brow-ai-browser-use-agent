@@ -4,7 +4,7 @@ import type { TabInfo } from "./messaging";
 import type { PageIndex } from "./page-index";
 import type { ActionResult } from "@/entrypoints/background/actions";
 import type { AgentAction, Proposal } from "@/lib/agent";
-import type { RunOutcome } from "@/lib/agent/loop";
+import type { AskReply, AskRequest, RunOutcome } from "@/lib/agent/loop";
 import type { TokenUsage } from "@/lib/provider";
 
 export type NoteLevel = "info" | "sent" | "recv" | "error";
@@ -41,7 +41,8 @@ export type PanelEvent =
       outcome: string;
       state: "thinking" | "acting" | "ok" | "bad";
     })
-  | (Base & { kind: "summary"; outcome: RunOutcome; task: string });
+  | (Base & { kind: "summary"; outcome: RunOutcome; task: string })
+  | (Base & { kind: "ask"; request: AskRequest; answer: AskReply | null });
 
 /** Omit over a union must distribute, or the branches collapse to their overlap. */
 type DistributiveOmit<T, K extends PropertyKey> = T extends unknown ? Omit<T, K> : never;
@@ -62,6 +63,7 @@ interface PanelState {
   /** Proposal and step cards are written before their outcome is known. */
   resolveProposal: (id: number, state: "executed" | "rejected") => void;
   patchStep: (id: number, patch: Partial<Extract<PanelEvent, { kind: "step" }>>) => void;
+  answerAsk: (id: number, answer: AskReply) => void;
   clear: () => void;
 }
 
@@ -84,6 +86,10 @@ export const usePanel = create<PanelState>((set) => ({
   patchStep: (id, patch) =>
     set((s) => ({
       events: s.events.map((e) => (e.id === id && e.kind === "step" ? { ...e, ...patch } : e)),
+    })),
+  answerAsk: (id, answer) =>
+    set((s) => ({
+      events: s.events.map((e) => (e.id === id && e.kind === "ask" ? { ...e, answer } : e)),
     })),
   resolveProposal: (id, state) =>
     set((s) => ({

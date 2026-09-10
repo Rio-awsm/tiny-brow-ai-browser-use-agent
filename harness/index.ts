@@ -12,12 +12,13 @@ import { readFileSync } from "node:fs";
 import { parseArgs } from "node:util";
 import { redact, resolveBackend, validateBackend } from "./config.js";
 import { makeDriver, DRIVERS } from "./driver.js";
+import { buildMatrix, loadRuns, renderMatrix } from "./compare.js";
 import { persist, renderAttempts, renderReport } from "./report.js";
 import { runSuite } from "./runner.js";
 import { TASKS, taskById } from "./tasks.js";
 import type { AttemptResult } from "./types.js";
 
-const { values } = parseArgs({
+const { values, positionals } = parseArgs({
   options: {
     driver: { type: "string", default: "stub" },
     provider: { type: "string" },
@@ -27,15 +28,45 @@ const { values } = parseArgs({
     tier: { type: "string" },
     attempts: { type: "string", short: "n", default: "1" },
     "step-cap": { type: "string", default: "40" },
-    timeout: { type: "string", default: "180" },
+    timeout: { type: "string", default: "300" },
+    port: { type: "string" },
     authed: { type: "boolean", default: false },
     verbose: { type: "boolean", short: "v", default: false },
     "no-save": { type: "boolean", default: false },
     "verify-tasks": { type: "boolean", default: false },
+    compare: { type: "boolean", default: false },
     help: { type: "boolean", short: "h", default: false },
   },
-  allowPositionals: false,
+  // Tolerated so the situation below can be explained rather than crashing
+  // with a raw Node stack trace.
+  allowPositionals: true,
 });
+
+if (positionals.length > 0) {
+  // npm on Windows consumes `--provider`/`--model` as its own config and passes
+  // only the bare values through, so the flag names never reach us. No form of
+  // quoting or `--` gets around it; running the script directly does.
+  const guessed = positionals.join(" ");
+  console.error("");
+  console.error(`  Unexpected arguments: ${guessed}`);
+  console.error("");
+  console.error("  npm swallowed the flag names before they reached the harness.");
+  console.error("  This is npm's behaviour on Windows and quoting does not help.");
+  console.error("");
+  console.error("  Run the script directly instead:");
+  console.error("");
+  console.error(`    npx tsx harness/index.ts --driver bridge ${flagsFor(positionals)}`);
+  console.error("");
+  process.exit(1);
+}
+
+/** Best-effort reconstruction of what the user meant, for the hint above. */
+function flagsFor(values: string[]): string {
+  const [first, second] = values;
+  if (first && second) return `--provider ${first} --model ${second}`;
+  if (first) return `--provider ${first} --model <model>`;
+  return "--provider <preset> --model <model>";
+}
 
 if (values.help) {
   console.log(helpText());
@@ -44,6 +75,12 @@ if (values.help) {
 
 if (values["verify-tasks"]) {
   process.exit(verifyTasks() ? 0 : 1);
+}
+
+if (values.compare) {
+  const runs = loadRuns();
+  console.log(renderMatrix(buildMatrix(runs)));
+  process.exit(runs.length ? 0 : 1);
 }
 
 const backend = resolveBackend({
@@ -101,6 +138,21 @@ const line = (r: AttemptResult) => {
   const note = r.error ?? r.failure ?? "";
   console.log(`  ${v} ${r.taskId} ${r.taskSlug} (#${r.attempt})${note ? `  ${note}` : ""}`);
 };
+
+// Printed before anything runs, not only in the closing report: the most
+// common mistake is losing flags to npm (they need `--` first) and silently
+// scoring the backend in .env instead of the one you meant.
+for (const line of [
+  "",
+  `  driver    ${driver.name}`,
+  `  backend   ${backend.provider}  ${backend.model || "(no model)"}`,
+  `  endpoint  ${backend.baseUrl || "(no base url)"}`,
+  `  key       ${redact(backend).apiKey}`,
+  `  tasks     ${tasks.map((t) => t.id).join(", ")}  x${attempts}`,
+  "",
+]) {
+  console.log(line);
+}
 
 const run = await runSuite({
   tasks,
@@ -183,6 +235,7 @@ tiny-brow scoring harness
   npm run harness -- [options]
 
   --driver <name>     ${Object.keys(DRIVERS).join(" | ")}   (default: stub)
+                      "bridge" runs the real agent in your browser
   --provider <name>   preset: groq | openrouter | google | litellm | lmstudio | custom
   --base-url <url>    override the preset base URL
   --model <name>      override the model
@@ -190,11 +243,13 @@ tiny-brow scoring harness
   --tier <tier>       trivial | easy | medium | hard | recovery
   -n, --attempts <n>  attempts per task (default 1)
   --step-cap <n>      max agent steps per attempt (default 40)
-  --timeout <s>       per-attempt wall-clock ceiling (default 180)
+  --timeout <s>       per-attempt wall-clock ceiling (default 300)
+  --port <n>          bridge port (default 8787)
   --authed            the browser profile is signed in; run requiresAuth tasks
   -v, --verbose       per-attempt lines and a detail table
   --no-save           do not write a JSON result file
   --verify-tasks      check tasks.md against the registry, then exit
+  --compare           build the provider matrix from harness-results/, then exit
   -h, --help
 `;
 }

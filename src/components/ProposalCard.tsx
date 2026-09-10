@@ -8,6 +8,7 @@ import {
   Loader2,
   MousePointerClick,
   Play,
+  MessageCircleQuestion,
   Quote,
   RefreshCw,
   Keyboard,
@@ -24,6 +25,7 @@ const ICON = {
   scroll: ArrowDown,
   navigate: Compass,
   extract: Quote,
+  ask: MessageCircleQuestion,
   done: CircleCheck,
   fail: Flag,
 } as const;

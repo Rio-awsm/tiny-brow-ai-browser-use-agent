@@ -146,6 +146,11 @@ export class OpenAICompatProvider implements LLMProvider {
         completion: payload.usage?.completion_tokens ?? 0,
         cachedPrompt: payload.usage?.prompt_tokens_details?.cached_tokens,
       },
+      timings: {
+        queueMs: seconds(payload.usage?.queue_time),
+        promptMs: seconds(payload.usage?.prompt_time),
+        completionMs: seconds(payload.usage?.completion_time),
+      },
       rateLimit,
       requestMs,
       model: payload.model ?? model,
@@ -233,5 +238,12 @@ interface ChatCompletion {
     prompt_tokens?: number;
     completion_tokens?: number;
     prompt_tokens_details?: { cached_tokens?: number };
+    // Reported in seconds by the providers that report them at all.
+    queue_time?: number;
+    prompt_time?: number;
+    completion_time?: number;
   };
 }
+
+const seconds = (value?: number) =>
+  typeof value === "number" && Number.isFinite(value) ? Math.round(value * 1000) : undefined;

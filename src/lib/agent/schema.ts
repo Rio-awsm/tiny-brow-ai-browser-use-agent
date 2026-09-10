@@ -1,4 +1,5 @@
 import * as z from "zod";
+import type { IndexedElement } from "@/lib/page-index";
 
 /**
  * The action schema. Defined once; the wire schema and the runtime check both
@@ -13,7 +14,16 @@ import * as z from "zod";
  * include a key.
  */
 export const ActionSchema = z.object({
-  action: z.enum(["click", "type", "scroll", "navigate", "extract", "done", "fail"]),
+  action: z.enum([
+    "click",
+    "type",
+    "scroll",
+    "navigate",
+    "extract",
+    "ask",
+    "done",
+    "fail",
+  ]),
   index: z
     .number()
     .int()
@@ -23,7 +33,7 @@ export const ActionSchema = z.object({
     .string()
     .nullable()
     .describe(
-      "text to type, URL to navigate to, or the answer for extract/done/fail; otherwise null",
+      "text to type, URL to navigate to, the question for ask, or the answer for extract/done/fail; otherwise null",
     ),
   direction: z
     .enum(["up", "down"])
@@ -47,6 +57,8 @@ export function describeAction(action: AgentAction): string {
       return `navigate to ${action.value ?? ""}`;
     case "extract":
       return `extract: ${action.value ?? ""}`;
+    case "ask":
+      return `ask: ${action.value ?? ""}`;
     case "done":
       return `done: ${action.value ?? ""}`;
     case "fail":
@@ -58,14 +70,24 @@ export interface ActionProblem {
   message: string;
 }
 
+/** Fields no agent may ever fill in, whatever the page or the prompt says. */
+const SECRET_FIELD = /password|passcode|\botp\b|\bpin\b|one[- ]?time|\bcvv\b|\bcvc\b|security code|card number|credit card/i;
+
 /**
- * Checks the parts a JSON schema cannot express: that an index actually exists
- * in the current index, and that the fields an action needs are populated.
+ * Checks the parts a JSON schema cannot express: that an index exists, that the
+ * fields an action needs are populated, and that the target is something the
+ * agent is allowed to touch.
  *
- * Schema-constrained decoding guarantees the shape, never the meaning.
+ * Schema-constrained decoding guarantees the shape, never the meaning. The
+ * secret-field refusal is here, in code, rather than as a prompt rule — model
+ * instructions get forgotten under long context and code does not.
  */
-export function validateAction(action: AgentAction, indexSize: number): ActionProblem | null {
+export function validateAction(
+  action: AgentAction,
+  elements: IndexedElement[],
+): ActionProblem | null {
   const needsIndex = action.action === "click" || action.action === "type";
+  const indexSize = elements.length;
 
   if (needsIndex) {
     if (action.index === null) {
@@ -81,6 +103,18 @@ export function validateAction(action: AgentAction, indexSize: number): ActionPr
     }
   }
 
+  if (action.action === "type" && action.index !== null) {
+    const target = elements[action.index];
+    const describes = `${target?.role ?? ""} ${target?.note ?? ""} ${target?.label ?? ""}`;
+    if (target && SECRET_FIELD.test(describes)) {
+      return {
+        message:
+          `[${action.index}] is a secret field (${target.label || target.role}). ` +
+          "Tiny never types passwords, PINs, OTPs or card details — use ask so the user can type it.",
+      };
+    }
+  }
+
   if (action.action === "type" && !action.value) {
     return { message: "type needs the text to type, but value was null" };
   }
@@ -92,6 +126,9 @@ export function validateAction(action: AgentAction, indexSize: number): ActionPr
   }
   if ((action.action === "done" || action.action === "fail") && !action.value) {
     return { message: `${action.action} needs an answer, but value was null` };
+  }
+  if (action.action === "ask" && !action.value) {
+    return { message: "ask needs a question for the user, but value was null" };
   }
 
   return null;

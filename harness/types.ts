@@ -73,6 +73,8 @@ export type FailureMode =
   | "timeout"
   /** Agent explicitly emitted `fail`. */
   | "agent_gave_up"
+  /** Hit a sign-in or other wall only a human can pass. */
+  | "needs_user"
   /** Page/DOM/CDP problem rather than a model problem. */
   | "page_error"
   /** The driver itself threw. A harness bug, never a model result. */
@@ -123,6 +125,10 @@ export interface Timing {
   requestMs: number;
   /** Of `requestMs`, time spent blocked on rate-limit backoff. */
   rateLimitWaitMs: number;
+  /** Of `requestMs`, prompt processing as the provider reported it. */
+  prefillMs: number;
+  /** Of `requestMs`, generation as the provider reported it. */
+  generationMs: number;
   /** Time spent in the browser: CDP round trips, indexing, the waiting layer. */
   browserMs: number;
   /** Everything else — our own overhead. Derived, never measured directly. */
@@ -141,6 +147,10 @@ export interface StepRecord {
   indexSize: number;
   usage: TokenUsage;
   requestMs: number;
+  /** Prefill, where the provider reports it. Dominates on a local backend. */
+  promptMs?: number;
+  /** Generation, where the provider reports it. */
+  completionMs?: number;
   error?: string;
 }
 

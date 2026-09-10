@@ -5,7 +5,27 @@ import { propose, toCommand, type Proposal } from "./index";
 import { historyLine, type HistoryEntry } from "./prompt";
 import { isTerminal, type AgentAction } from "./schema";
 
-export type RunStatus = "done" | "failed" | "stopped" | "step_cap" | "error";
+export type RunStatus =
+  | "done"
+  | "failed"
+  | "stopped"
+  | "step_cap"
+  | "needs_user"
+  | "error";
+
+export interface AskRequest {
+  question: string;
+  /** Why the loop believes it cannot proceed alone. */
+  because: string;
+  url: string;
+}
+
+export interface AskReply {
+  /** continue: the user dealt with it. skip: carry on without. stop: end the run. */
+  action: "continue" | "skip" | "stop";
+  /** Anything the user wants the agent to know, e.g. "signed in as me". */
+  note: string;
+}
 
 export interface RunOutcome {
   status: RunStatus;
@@ -31,6 +51,12 @@ export interface LoopDeps {
   onStepStart: (n: number, page: PageIndex) => void;
   onProposal: (n: number, proposal: Proposal) => void;
   onStepEnd: (n: number, outcome: string, ok: boolean) => void;
+  /**
+   * Hands control to the human and waits. The loop simply awaits this, so a
+   * pause needs no state machine — and a caller with no human present (the
+   * scoring harness) answers "stop" immediately.
+   */
+  onAsk: (request: AskRequest) => Promise<AskReply>;
   /** Rate-limit waits are long enough that they have to be visible. */
   onWait?: (ms: number, why: string) => void;
   sleep?: (ms: number) => Promise<void>;
@@ -43,6 +69,8 @@ export interface LoopOptions extends LoopDeps {
   signal: AbortSignal;
   /** Attempts to survive a 429 before giving up on the step. */
   maxRateLimitRetries?: number;
+  /** Returns why this page needs a human, or null. */
+  detectWall?: (page: PageIndex) => string | null;
 }
 
 const MAX_BACKOFF_MS = 30_000;
@@ -67,6 +95,11 @@ export async function runLoop(opts: LoopOptions): Promise<RunOutcome> {
   /** One retry per step for a malformed choice, then the step fails. */
   let repaired = false;
   let steps = 0;
+
+  // Loop detection. Small models repeat a useless action indefinitely, which on
+  // a wall like a sign-in page looks locally reasonable every single time.
+  const recent: string[] = [];
+  let handedOffFor = "";
 
   const finish = (status: RunStatus, answer = "", error?: string): RunOutcome => ({
     status,
@@ -147,6 +180,69 @@ export async function runLoop(opts: LoopOptions): Promise<RunOutcome> {
     repaired = false;
     correction = undefined;
     const { action } = proposal;
+
+    // Ask before acting, so a wall the agent cannot pass is handed over rather
+    // than hammered at until the step cap.
+    const wall = opts.detectWall?.(page) ?? null;
+    const signature = `${page.url}|${action.action}|${action.index ?? ""}|${action.value ?? ""}`;
+    recent.push(signature);
+    if (recent.length > 3) recent.shift();
+    const stuck = recent.length === 3 && new Set(recent).size === 1;
+
+    if ((wall || stuck) && action.action !== "ask" && handedOffFor !== signature) {
+      handedOffFor = signature;
+      recent.length = 0;
+
+      const because = wall ?? "The same action has been chosen three times without progress.";
+      const reply = await opts.onAsk({
+        question: wall
+          ? "Tiny cannot sign in for you. Log in in the tab, then continue."
+          : "Tiny appears to be stuck. Take a look, then tell it how to proceed.",
+        because,
+        url: page.url,
+      });
+
+      if (reply.action === "stop") {
+        opts.onStepEnd(n, `handed over: ${because}`, false);
+        return finish("needs_user", because);
+      }
+
+      history.push({
+        n: history.length + 1,
+        action: "asked the user",
+        outcome:
+          reply.action === "continue"
+            ? `user handled it${reply.note ? `: ${reply.note}` : ""}`
+            : `user said to skip${reply.note ? `: ${reply.note}` : ""}`,
+      });
+      opts.onStepEnd(n, reply.action === "continue" ? "user handled it" : "skipped", true);
+      // Re-read from scratch: the user has probably changed the page.
+      continue;
+    }
+
+    if (action.action === "ask") {
+      const reply = await opts.onAsk({
+        question: action.value ?? "Tiny needs your help.",
+        because: action.reason,
+        url: page.url,
+      });
+
+      if (reply.action === "stop") {
+        opts.onStepEnd(n, "handed over to you", false);
+        return finish("needs_user", action.value ?? "");
+      }
+      history.push(
+        historyLine(
+          history.length + 1,
+          action,
+          reply.action === "continue"
+            ? `user handled it${reply.note ? `: ${reply.note}` : ""}`
+            : `user said to skip${reply.note ? `: ${reply.note}` : ""}`,
+        ),
+      );
+      opts.onStepEnd(n, reply.action === "continue" ? "user handled it" : "skipped", true);
+      continue;
+    }
 
     if (isTerminal(action)) {
       const answer = action.value ?? "";
