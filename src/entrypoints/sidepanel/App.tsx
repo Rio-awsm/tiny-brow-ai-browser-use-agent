@@ -597,6 +597,7 @@ export function App() {
         },
         onStepEnd: (n, outcomeText, ok) => {
           const record = collected[n - 1];
+          if (record) record.outcome = outcomeText;
           if (record && !ok) record.error = outcomeText;
           if (stepId === null) return;
           patchStep(stepId, { outcome: outcomeText, state: ok ? "ok" : "bad" });

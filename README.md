@@ -254,7 +254,7 @@ is how you debug a run that went wrong.
 | Page still loading | The waiting layer runs before every read, so a step never reasons about a half-rendered page. |
 | An action changed nothing | The next turn is told so in words — same URL, same scroll, same elements. A model shown a page cannot see a diff, and left to infer it, it clicks the same dead button until the cap. |
 | The same choice twice | The element is named and forbidden. Handing over on the third identical action was too quick: nothing had ever told the model that the thing did not work. |
-| The same choice three times | The plan is rewritten once, then the run is handed to you. |
+| The same choice three times | Escape is pressed once, then the plan is rewritten once, then the run is handed to you. A stuck run is usually stuck behind an overlay, and the close buttons that defeat it are the ones with no accessible name — not in the index, so not clickable however well the model is prompted. Escape does not need the element to exist. |
 | Off-schema reply | Retried twice. One bad decode is a provider flake, and failing the task over it scores the endpoint's hiccup as the agent being unable to do the job. |
 | `fail` on the first attempt | Challenged once. Giving up is cheap for the model and expensive for you, and it often does it while its own reason names the next thing to try. |
 | `done` | Checked by a second, independent call before the run ends. |
@@ -456,6 +456,13 @@ spent thirty steps convincing itself is the worst possible judge of that, so the
 is a separate call that sees only the task, the notes and the final page — no history,
 no reasoning to agree with. It argues once; a rejected answer comes back with the
 reason attached, and the run carries on.
+
+It judges against NOTES, not against the final page. On a two-site task the page the
+agent stopped on is the *second* site, and the first site's fact is not on it — a
+validator reading the page as evidence rejects a correct comparison for mentioning a
+price that "is not there". And whatever happens, a run never falls back past an answer
+the model composed to a bare join of its notes: one is a sentence with a comparison in
+it, the other is two loose numbers.
 
 **The planner** exists because a small model choosing one action at a time is good at
 *what do I click* and bad at *which site holds which fact, and in what order*. That gap

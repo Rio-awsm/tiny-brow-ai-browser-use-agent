@@ -153,6 +153,15 @@ export interface StepRecord {
   promptMs?: number;
   /** Generation, where the provider reports it. */
   completionMs?: number;
+  /**
+   * What the loop did with the choice, in its own words.
+   *
+   * Not the same thing as the action: a step where the loop refused, pushed
+   * back, pressed Escape or replanned still records the model's proposal, and
+   * without this line a log of nine identical clicks is indistinguishable from
+   * a log of nine identical clicks with three recoveries in the middle.
+   */
+  outcome?: string;
   error?: string;
 }
 

@@ -148,6 +148,57 @@ const cases: Case[] = [
     expect: (o) => (ok(o) && /42/.test(o.answer)) || `answer ${JSON.stringify(o.answer)}`,
   },
 
+  {
+    // The whole of T07: the answer was composed correctly, the validator
+    // disagreed, and the fallback replaced a sentence with two loose numbers.
+    name: "a rejected run falls back to the answer, not to raw notes",
+    validate: true,
+    replies: [
+      { action: "extract", value: "Amazon ₹795" },
+      { action: "extract", value: "Flipkart ₹709" },
+      { action: "done", value: "Flipkart is cheaper at ₹709, ₹86 less than Amazon's ₹795" },
+      { action: "extract", value: "Flipkart ₹709" },
+      { action: "extract", value: "Flipkart ₹709" },
+    ],
+    verdicts: [{ met: false, why: "the page is about something else" }],
+    expect: (o) =>
+      (ok(o) && /₹86 less/.test(o.answer)) || `answer ${JSON.stringify(o.answer)}`,
+  },
+  {
+    // T04: the title first, then the title with its price. Two notes, one of
+    // them stale, and both ended up in the answer.
+    name: "a fuller version of a fact replaces the earlier one",
+    replies: [
+      { action: "extract", value: "Portronics Toad 23 Wireless Mouse" },
+      { action: "extract", value: "Portronics Toad 23 Wireless Mouse - ₹349" },
+      { action: "extract", value: "Zebronics Zeb-Comfort - ₹399" },
+      { action: "extract", value: "Zebronics Zeb-Comfort - ₹399" },
+      { action: "extract", value: "Zebronics Zeb-Comfort - ₹399" },
+    ],
+    expect: (o) =>
+      (ok(o) && /₹349/.test(o.answer) && !/Mouse Zebronics/.test(o.answer)) ||
+      `answer ${JSON.stringify(o.answer)}`,
+  },
+  {
+    name: "but two genuinely different facts both survive",
+    replies: [
+      { action: "extract", value: "Amazon ₹795" },
+      { action: "extract", value: "Flipkart ₹709" },
+      { action: "done", value: "" },
+    ],
+    expect: (o) =>
+      (/795/.test(o.answer) && /709/.test(o.answer)) || `answer ${JSON.stringify(o.answer)}`,
+  },
+  {
+    name: "extracting less than is already noted is a repeat, not a new fact",
+    replies: [
+      { action: "extract", value: "Portronics Toad 23 Wireless Mouse - ₹349" },
+      { action: "extract", value: "Portronics Toad 23" },
+      { action: "done", value: "₹349" },
+    ],
+    expect: (o) => (ok(o) && o.steps === 3) || `status ${o.status} steps ${o.steps}`,
+  },
+
   // ---- M12: repair, retry, loop breaking -------------------------------------
   {
     name: "an action that changed nothing is said so, in words",
@@ -189,8 +240,17 @@ const cases: Case[] = [
       `status ${o.status}\n${s.prompts[2]?.slice(-300)}`,
   },
   {
-    name: "but clicking in circles is still handed over",
+    // MakeMyTrip's login popup: the close control has no accessible name, so it
+    // is not in the index and no amount of prompting can make the model click
+    // it. Escape is the move that does not need the element to exist.
+    name: "being stuck tries Escape before giving up on the page",
     replies: Array.from({ length: 8 }, () => ({ action: "click" as const, index: 1 })),
+    expect: (_o, s) =>
+      s.acted.includes("key") || `never pressed Escape: ${JSON.stringify(s.acted)}`,
+  },
+  {
+    name: "but clicking in circles is still handed over",
+    replies: Array.from({ length: 12 }, () => ({ action: "click" as const, index: 1 })),
     expect: (o) => o.status === "needs_user" || `status ${o.status}`,
   },
   {

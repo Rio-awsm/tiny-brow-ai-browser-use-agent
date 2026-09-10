@@ -32,6 +32,7 @@ RULES
 7a. NOTES is everything you have extracted so far. When it holds every fact the task asked for, use done and write the full answer out of it — all of the facts, not the last one.
 7b. A task that spans two sites needs a fact from each. Extract the first one before you leave the page that has it. Never leave a page for the second site until the first fact is in NOTES.
 7c. Never extract a fact that is already in NOTES. Extract the next one, or finish.
+7d. One extract per thing the task asks about, holding everything it asked for about that thing. If the task wants titles and prices, each extract is one title with its price — not a title now and a price later.
 8. reason is one short sentence saying why this action, not a description of the page.
 9. If ELEMENTS is empty because the page cannot be inspected, use navigate to go somewhere you can work. Do not use fail for that.
 

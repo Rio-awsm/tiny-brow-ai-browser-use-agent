@@ -139,6 +139,8 @@ export async function runLoop(opts: LoopOptions): Promise<RunOutcome> {
   let handedOffFor = "";
   /** One nudge per stuck signature before the run is handed over. */
   let nudgedFor = "";
+  /** Escape is tried once per run as a way out of an overlay. */
+  let escaped = false;
   /** Every fact extracted so far, in order, kept verbatim for the final answer. */
   const notes: string[] = [];
   let extractRepeats = 0;
@@ -148,6 +150,14 @@ export async function runLoop(opts: LoopOptions): Promise<RunOutcome> {
   let decodeRetries = 0;
   /** One challenge per false `done`, then the answer is accepted as given. */
   let challengedDone = false;
+  /**
+   * The last answer the model actually composed.
+   *
+   * Joined notes are a floor, not a substitute: an answer the model wrote is a
+   * sentence with a comparison in it, and "₹795 ₹709" is two numbers. Falling
+   * back past one to the other threw away a correct answer once already.
+   */
+  let bestAnswer = "";
 
   const routes = opts.routes ?? {};
   const firewall = opts.firewall ?? DEFAULT_FIREWALL;
@@ -337,7 +347,7 @@ export async function runLoop(opts: LoopOptions): Promise<RunOutcome> {
         // A model that keeps trying to finish without writing the answer down
         // has still done the work; the notes are that answer.
         if (isTerminal(proposal.action) && notes.length > 0) {
-          const out = await concludeDone(notes.join(" "), page, n);
+          const out = await concludeDone(bestAnswer || notes.join(" "), page, n);
           if (out) return out;
           continue;
         }
@@ -415,6 +425,27 @@ export async function runLoop(opts: LoopOptions): Promise<RunOutcome> {
     // exemptions here are about `wall`: asking is the right move on a sign-in
     // page, and an extraction is answered below rather than handed over.
     const handOff = (wall || stuck) && action.action !== "ask" && action.action !== "extract";
+
+    // The last mechanical move before anything cleverer. A run that is stuck on
+    // the same element is usually stuck behind an overlay, and Escape closes
+    // most of them — including the ones whose close button carries no
+    // accessible name, which is exactly the case no amount of prompting fixes
+    // because the control is not in the index to be clicked.
+    if (stuck && !wall && !escaped) {
+      escaped = true;
+      recent.length = 0;
+      try {
+        const result = await opts.execute({ kind: "key", name: "Escape" }, action);
+        history.push({ n: history.length + 1, action: "press Escape", outcome: result.summary });
+        opts.onStepEnd(n, "stuck — pressed Escape to close whatever is covering the page", true);
+      } catch (err) {
+        return finish("error", "", message(err));
+      }
+      correction =
+        "Escape was pressed to close anything covering the page. Look at the " +
+        "elements again — if the overlay is gone, get on with the task.";
+      continue;
+    }
 
     // A stuck run is exactly what a planner is for: the navigator has proved it
     // cannot see a way through from where it is standing. One re-plan, then the
@@ -498,7 +529,8 @@ export async function runLoop(opts: LoopOptions): Promise<RunOutcome> {
     if (isTerminal(action)) {
       // A run that gathered facts and then said nothing should still hand them
       // over; the notes are the work, and discarding them helps nobody.
-      const answer = action.value?.trim() || notes.join(" ");
+      const answer = action.value?.trim() || bestAnswer || notes.join(" ");
+      if (action.action === "done" && answer) bestAnswer = answer;
       if (action.action === "fail") {
         opts.onStepEnd(n, `gave up: ${answer}`, false);
         return finish("failed", answer, undefined, "agent_gave_up");
@@ -523,9 +555,10 @@ export async function runLoop(opts: LoopOptions): Promise<RunOutcome> {
       // Push back rather than finish: an extraction is sometimes a statement of
       // intent, and ending here would lock that in as the answer. Only after it
       // insists is the collected set the best thing to return.
-      if (notes.some((note) => squash(note) === squash(answer))) {
+      const key = squash(answer);
+      if (notes.some((note) => squash(note).includes(key))) {
         if (extractRepeats >= 1) {
-          const out = await concludeDone(notes.join(" "), page, n);
+          const out = await concludeDone(bestAnswer || notes.join(" "), page, n);
           if (out) return out;
           continue;
         }
@@ -539,7 +572,17 @@ export async function runLoop(opts: LoopOptions): Promise<RunOutcome> {
       }
 
       extractRepeats = 0;
-      notes.push(answer);
+
+      // A second look at the same thing usually adds to it rather than replacing
+      // it — the title first, then the title with its price. Keeping both leaves
+      // a stale half-fact in NOTES that ends up in the answer beside the whole
+      // one, so the fuller version takes the older one's place.
+      const refines = notes.findIndex((note) => {
+        const old = squash(note);
+        return key.startsWith(old) || (old.length >= 8 && key.includes(old));
+      });
+      if (refines >= 0) notes[refines] = answer;
+      else notes.push(answer);
       history.push(historyLine(history.length + 1, action, `noted (${notes.length})`));
       opts.onStepEnd(n, `noted: ${answer.slice(0, 80)}`, true);
       continue;

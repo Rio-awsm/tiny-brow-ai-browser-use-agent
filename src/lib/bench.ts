@@ -37,6 +37,8 @@ export interface BenchStep {
   /** Prefill and generation, where the provider reported them. */
   promptMs?: number;
   completionMs?: number;
+  /** What the loop did with the choice — refused, pushed back, recovered. */
+  outcome?: string;
   error?: string;
 }
 
