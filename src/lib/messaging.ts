@@ -26,7 +26,8 @@ export type PanelMessage =
   | { kind: "cdpScreenshot" }
   | { kind: "buildIndex" }
   | { kind: "overlay"; on: boolean }
-  | { kind: "command"; command: Command };
+  | { kind: "command"; command: Command; cursor: boolean }
+  | { kind: "cursor"; on: boolean };
 
 export type ContentMessage = { kind: "probePage" };
 
@@ -39,6 +40,7 @@ export type PanelReply =
   | { ok: true; kind: "buildIndex"; status: CdpStatus; index: PageIndex }
   | { ok: true; kind: "overlay"; on: boolean; count: number; index?: PageIndex }
   | { ok: true; kind: "command"; result: ActionResult; index?: PageIndex; overlayOn: boolean }
+  | { ok: true; kind: "cursor"; on: boolean }
   | { ok: false; error: string };
 
 export const CONTENT_READY = "tiny-brow:content-ready";
@@ -54,6 +56,7 @@ const PANEL_KINDS: PanelMessage["kind"][] = [
   "buildIndex",
   "overlay",
   "command",
+  "cursor",
 ];
 
 export function isPanelMessage(msg: unknown): msg is PanelMessage {

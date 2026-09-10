@@ -14,6 +14,7 @@ const TOOL_MESSAGE: Record<ToolId, PanelMessage> = {
   capture: { kind: "cdpScreenshot" },
   index: { kind: "buildIndex" },
   overlay: { kind: "overlay", on: true },
+  cursor: { kind: "cursor", on: true },
   ping: { kind: "ping", sentAt: 0 },
   tab: { kind: "activeTab" },
   page: { kind: "probePage" },
@@ -26,6 +27,15 @@ export function App() {
   } = usePanel();
   const [busyTool, setBusyTool] = useState<ToolId | null>(null);
   const [overlayOn, setOverlayOn] = useState(false);
+  const [cursorOn, setCursorOn] = useState(true);
+
+  // A preference, so it outlives the panel rather than resetting every time it
+  // is reopened.
+  useEffect(() => {
+    chrome.storage.local.get("cursorOn").then((v) => {
+      if (typeof v.cursorOn === "boolean") setCursorOn(v.cursorOn);
+    });
+  }, []);
 
   const refresh = useCallback(async () => {
     const tabReply = await sendToBackground({ kind: "activeTab" });
@@ -70,7 +80,9 @@ export function App() {
         ? { kind: "ping" as const, sentAt: Date.now() }
         : tool === "overlay"
           ? { kind: "overlay" as const, on: !overlayOn }
-          : TOOL_MESSAGE[tool];
+          : tool === "cursor"
+            ? { kind: "cursor" as const, on: !cursorOn }
+            : TOOL_MESSAGE[tool];
     note("sent", `${tool} → background`);
 
     const reply = await sendToBackground(msg);
@@ -108,6 +120,11 @@ export function App() {
         push({ kind: "action", result: reply.result });
         if (reply.index) push({ kind: "index", index: reply.index });
         setOverlayOn(reply.overlayOn);
+        break;
+      case "cursor":
+        setCursorOn(reply.on);
+        void chrome.storage.local.set({ cursorOn: reply.on });
+        note("recv", reply.on ? "cursor shown" : "cursor hidden");
         break;
       case "overlay":
         setOverlayOn(reply.on);
@@ -154,7 +171,11 @@ export function App() {
     }
 
     setRunning(true);
-    const reply = await sendToBackground({ kind: "command", command: parsed.command });
+    const reply = await sendToBackground({
+      kind: "command",
+      command: parsed.command,
+      cursor: cursorOn,
+    });
     if (!reply.ok) {
       note("error", reply.error);
       await refresh();
@@ -193,6 +214,7 @@ export function App() {
           cdp={cdp}
           busyTool={busyTool}
           overlayOn={overlayOn}
+          cursorOn={cursorOn}
           onChange={setTask}
           onRun={() => void run()}
           onStop={() => setRunning(false)}

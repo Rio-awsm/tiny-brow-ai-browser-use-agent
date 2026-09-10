@@ -8,9 +8,10 @@ name, and the agent runs on whatever OpenAI-compatible endpoint answers — Groq
 OpenRouter, Google AI Studio, LiteLLM, a local LM Studio server, or anything else
 speaking the same wire format.
 
-> **Status: M5.** The page can be driven by hand — `click 7`, `type 3 hello`,
-> `key Enter` — through real browser input events. There is no agent yet, so every
-> harness task still reports `not_implemented`.
+> **Status: M6.** The page can be driven by hand, with a visible cursor that glides
+> to each target before it clicks. Phase 2 is complete: perception and actuation both
+> work, deterministically, with no model involved. The agent arrives in M7–M9, so
+> every harness task still reports `not_implemented`.
 >
 > The extension is called **Tiny** in the UI; `tiny-brow` is the project name.
 
@@ -26,7 +27,8 @@ The build runs through sixteen gated milestones (`docs/browser-agent-build-guide
 | M3 | The DOM indexer | **done** |
 | M4 | The highlight overlay | **done** |
 | M5 | Manual actuation | **done** |
-| M6 | The cursor overlay | next |
+| M6 | The cursor overlay | **done** |
+| M7 | The provider layer | next |
 | M7–M10 | Provider layer, agent loop, provider matrix | |
 | M11–M14 | Compression, repair, safety gate, router | |
 | M15 | Packaging and release | |
@@ -54,6 +56,7 @@ bottom exercise the messaging paths the agent will use:
 | **Attach** / **Detach** | Opens or closes a pinned CDP session |
 | **Index** | Builds the numbered element index the model will act on |
 | **Overlay** | Re-indexes, then draws numbered boxes over every element on the page |
+| **Cursor** | Toggles the animated cursor. On by default, remembered across sessions |
 | **Shot** | `Page.captureScreenshot`. Attaches first if needed, then detaches, so a one-shot never leaves the banner up |
 | **Ping** / **Probe** | Message round trips through the background worker and content script |
 
@@ -136,6 +139,30 @@ whatever slid into that spot.
 
 After an action the page has changed, so the index is rebuilt automatically and the
 overlay redrawn if it was on.
+
+### The cursor
+
+A pointer that glides to each target over ~340ms and ripples as the click lands.
+
+It is styled so it can never be mistaken for your own mouse: a mint arrow with a
+white edge, a breathing halo behind it, and a labelled pill reading **Tiny** with a
+live status dot — the multiplayer-cursor convention, which people already read as
+"someone else is driving". The label names the current action, so a click on a real
+site says `Tiny · clicking button "Add to cart"`.
+
+The click is dispatched **after** the glide resolves, not alongside it. The injected
+move returns a promise that settles on `transitionend`, and `Runtime.evaluate` is
+called with `awaitPromise: true` — so the animation is a truthful account of what
+happened rather than decoration played over it.
+
+It is purely cosmetic and worth building before the agent anyway. It is the
+difference between a demo people understand and a wall of logs, and in practice it
+is what makes you trust the thing enough to let it run on your real accounts.
+
+Like the highlight overlay it lives in a closed shadow root under a
+`data-tiny-brow` host with `pointer-events: none`, so it never appears in its own
+index and never answers a hit test. It is re-created before every action, which is
+also how it comes back after a navigation destroys it.
 
 ### Why not `element.click()`
 
@@ -306,6 +333,7 @@ src/
       extract.ts      the injected page indexer
       overlay.ts      the injected highlight overlay
       actions.ts      click, type, key, scroll, navigate over CDP Input
+      cursor.ts       the injected animated cursor
     content/          injected into every page; probes and, later, overlays
     sidepanel/        the React panel — where the agent loop will live
   components/         panel UI: header, transcript, composer, logo

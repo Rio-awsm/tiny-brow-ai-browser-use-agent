@@ -1,5 +1,6 @@
 import { resolveKey, type Command } from "@/lib/commands";
 import { send } from "./cdp";
+import * as cursor from "./cursor";
 
 /** Also spelled literally inside `focusIndexed`, which cannot import. */
 export const NO_INDEX = "no index on this page yet";
@@ -143,11 +144,25 @@ async function target(tabId: number, index: number, selectAll = false): Promise<
  * `isTrusted`, and a synthetic DOM event fails that check — silently, on exactly
  * the sites worth automating. CDP input is indistinguishable from a real mouse.
  */
-async function clickAt(tabId: number, x: number, y: number) {
+async function clickAt(
+  tabId: number,
+  x: number,
+  y: number,
+  showCursor: boolean,
+  label = "Tiny",
+) {
   const base = { x, y, pointerType: "mouse" as const };
+
+  if (showCursor) {
+    // Awaited, so the click lands after the cursor arrives rather than while it
+    // is still travelling — otherwise the animation is a lie about what happened.
+    await cursor.glideTo(tabId, x, y, label);
+  }
+
   await send(tabId, "Input.dispatchMouseEvent", { ...base, type: "mouseMoved", button: "none", buttons: 0 });
   await sleep(60);
   await send(tabId, "Input.dispatchMouseEvent", { ...base, type: "mousePressed", button: "left", buttons: 1, clickCount: 1 });
+  if (showCursor) await cursor.pulse(tabId);
   await sleep(35);
   await send(tabId, "Input.dispatchMouseEvent", { ...base, type: "mouseReleased", button: "left", buttons: 0, clickCount: 1 });
 }
@@ -199,8 +214,14 @@ interface LayoutMetrics {
   cssLayoutViewport?: { clientWidth: number; clientHeight: number };
 }
 
-export async function runCommand(tabId: number, command: Command): Promise<ActionResult> {
+export async function runCommand(
+  tabId: number,
+  command: Command,
+  showCursor: boolean,
+): Promise<ActionResult> {
   const started = performance.now();
+  // Re-created on demand, which is also how it comes back after a navigation.
+  if (showCursor) await cursor.ensure(tabId);
   const done = (summary: string, extra: Partial<ActionResult> = {}): ActionResult => ({
     summary,
     tookMs: Math.round(performance.now() - started),
@@ -210,7 +231,7 @@ export async function runCommand(tabId: number, command: Command): Promise<Actio
   switch (command.kind) {
     case "click": {
       const t = await target(tabId, command.index);
-      await clickAt(tabId, t.x, t.y);
+      await clickAt(tabId, t.x, t.y, showCursor, `Tiny · clicking ${describe(t)}`.slice(0, 44));
       return done(`clicked [${command.index}] ${describe(t)}`, {
         at: { x: t.x, y: t.y },
         scrolled: t.scrolled,
@@ -220,7 +241,7 @@ export async function runCommand(tabId: number, command: Command): Promise<Actio
 
     case "type": {
       const t = await target(tabId, command.index, true);
-      await clickAt(tabId, t.x, t.y);
+      await clickAt(tabId, t.x, t.y, showCursor, "Tiny · typing");
       await sleep(80);
       await typeText(tabId, command.text, command.mode);
       return done(

@@ -82,21 +82,26 @@ function extractFunction(bundle: string, fnName: string): string | null {
 }
 
 /**
- * Runs the function with page globals only. The stub is deliberately rich
- * enough for the overlay to walk its whole path — an early return would exit
- * before reaching the helpers this check exists to catch.
+ * Runs the function with page globals only, against two page states.
+ *
+ * Every injected function has a "nothing set up yet" branch that returns early.
+ * A single stub therefore always leaves half of them untested — populated, the
+ * cursor's create path never runs; empty, the overlay's draw path never runs.
+ * Running both is what makes the check mean something.
  */
 function invoke(source: string): void {
-  const stub = makeStubDom();
-  const keys = Object.keys(stub);
-  const factory = new Function(...keys, `return (${source});`);
-  const fn = factory(...keys.map((k) => stub[k])) as (...args: unknown[]) => unknown;
-  // The indexer takes (indexCap, textCap) and focusIndexed takes (index,
-  // selectAll); both are satisfied by these, and the overlay pair ignores args.
-  fn(40, 4000);
+  for (const populated of [true, false]) {
+    const stub = makeStubDom(populated);
+    const keys = Object.keys(stub);
+    const factory = new Function(...keys, `return (${source});`);
+    const fn = factory(...keys.map((k) => stub[k])) as (...args: unknown[]) => unknown;
+    // The indexer takes (indexCap, textCap) and focusIndexed takes (index,
+    // selectAll); both are satisfied by these, and the rest ignore their args.
+    fn(40, 4000);
+  }
 }
 
-function makeStubDom(): Record<string, unknown> {
+function makeStubDom(populated: boolean): Record<string, unknown> {
   const rect = { left: 10, top: 20, width: 100, height: 30, right: 110, bottom: 50 };
 
   function makeEl(tag = "div"): any {
@@ -115,9 +120,14 @@ function makeStubDom(): Record<string, unknown> {
       disabled: false,
       selectedOptions: [],
       isConnected: true,
+      innerHTML: "",
       focus() {},
       select() {},
       scrollIntoView() {},
+      addEventListener() {},
+      removeEventListener() {},
+      classList: { add() {}, remove() {}, toggle() {} },
+      lastChild: { textContent: "" },
       parentElement: null,
       hasAttribute: () => false,
       getAttribute: () => null,
@@ -139,6 +149,7 @@ function makeStubDom(): Record<string, unknown> {
   const doc: any = {
     createTreeWalker: () => ({ nextNode: () => null }),
     createElement: (tag: string) => makeEl(tag),
+    createTextNode: (text: string) => ({ textContent: text }),
     elementFromPoint: () => null,
     getElementById: () => null,
     title: "Stub",
@@ -164,10 +175,21 @@ function makeStubDom(): Record<string, unknown> {
     }),
     // Sized past the highest index any injected function is called with below,
     // so none of them bail out before reaching their helpers.
-    __tinyBrow: {
-      els: Array.from({ length: 64 }, () => makeEl("button")),
-      meta: Array.from({ length: 64 }, (_, i) => ({ i, role: "button", label: "Go" })),
-    },
+    __tinyBrow: populated
+      ? {
+          els: Array.from({ length: 64 }, () => makeEl("button")),
+          meta: Array.from({ length: 64 }, (_, i) => ({ i, role: "button", label: "Go" })),
+          cursor: {
+            host: makeEl("div"),
+            el: makeEl("div"),
+            root: makeEl("div"),
+            tag: makeEl("div"),
+            x: 0,
+            y: 0,
+          },
+          overlay: { destroy() {} },
+        }
+      : undefined,
   };
   doc.defaultView = win;
 

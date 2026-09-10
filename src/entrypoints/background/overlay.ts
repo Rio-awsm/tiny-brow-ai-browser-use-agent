@@ -28,7 +28,7 @@ function showOverlay() {
   const host = document.createElement("div");
   host.setAttribute("data-tiny-brow", "overlay");
   host.style.cssText =
-    "position:fixed;left:0;top:0;width:0;height:0;z-index:2147483647;pointer-events:none;";
+    "position:fixed;left:0;top:0;width:0;height:0;z-index:2147483646;pointer-events:none;";
 
   // Closed, so the indexer's `el.shadowRoot` check reads null and never walks
   // into it. Combined with the data attribute on the host, the overlay cannot

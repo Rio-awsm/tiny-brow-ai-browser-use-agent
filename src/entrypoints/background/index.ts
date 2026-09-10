@@ -2,6 +2,7 @@ import * as cdp from "./cdp";
 import { buildIndex } from "./extract";
 import { hideHighlights, isOverlayOn, showHighlights } from "./overlay";
 import { NO_INDEX, runCommand } from "./actions";
+import * as cursor from "./cursor";
 import {
   isPanelMessage,
   type ContentMessage,
@@ -117,13 +118,13 @@ async function handle(msg: PanelMessage): Promise<PanelReply> {
 
         let result;
         try {
-          result = await runCommand(tab.id, msg.command);
+          result = await runCommand(tab.id, msg.command, msg.cursor);
         } catch (err) {
           // Only index when the page has none. Re-indexing first would renumber
           // everything under a user who is acting on numbers they can see.
           if (!(err instanceof Error) || !err.message.includes(NO_INDEX)) throw err;
           await buildIndex(tab.id);
-          result = await runCommand(tab.id, msg.command);
+          result = await runCommand(tab.id, msg.command, msg.cursor);
         }
 
         // A navigation invalidates everything; let the panel re-index when the
@@ -135,7 +136,22 @@ async function handle(msg: PanelMessage): Promise<PanelReply> {
         await new Promise((r) => setTimeout(r, 250));
         const index = await buildIndex(tab.id);
         if (hadOverlay) await showHighlights(tab.id);
+        // A click that navigated took the cursor with it; put it back.
+        if (msg.cursor) await cursor.ensure(tab.id).catch(() => {});
         return { ok: true, kind: "command", result, index, overlayOn: hadOverlay };
+      } finally {
+        if (!wasAttached) await cdp.detach(tab.id).catch(() => {});
+      }
+    }
+
+    case "cursor": {
+      const tab = await requireTab();
+      const wasAttached = (await cdp.status(tab.id, tab.url)).state === "attached";
+      await cdp.attach(tab.id, tab.url, false);
+      try {
+        if (msg.on) await cursor.ensure(tab.id);
+        else await cursor.remove(tab.id);
+        return { ok: true, kind: "cursor", on: msg.on };
       } finally {
         if (!wasAttached) await cdp.detach(tab.id).catch(() => {});
       }

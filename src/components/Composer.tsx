@@ -7,6 +7,7 @@ import {
   Link2,
   Link2Off,
   Loader2,
+  MousePointer2,
   MousePointerClick,
   ScanEye,
   Square,
@@ -27,6 +28,7 @@ export type ToolId =
   | "capture"
   | "index"
   | "overlay"
+  | "cursor"
   | "ping"
   | "tab"
   | "page";
@@ -37,6 +39,7 @@ interface Props {
   cdp: CdpStatus | null;
   busyTool: ToolId | null;
   overlayOn: boolean;
+  cursorOn: boolean;
   onChange: (task: string) => void;
   onRun: () => void;
   onStop: () => void;
@@ -49,6 +52,7 @@ export function Composer({
   cdp,
   busyTool,
   overlayOn,
+  cursorOn,
   onChange,
   onRun,
   onStop,
@@ -114,6 +118,20 @@ export function Composer({
             icon={Camera}
             tip="Screenshot the viewport over CDP"
             disabled={restricted}
+            busyTool={busyTool}
+            onTool={onTool}
+          />
+          <Tool
+            id="cursor"
+            label="Cursor"
+            icon={MousePointer2}
+            tip={
+              cursorOn
+                ? "Hide the animated cursor"
+                : "Show an animated cursor that glides to each target"
+            }
+            disabled={restricted}
+            active={cursorOn}
             busyTool={busyTool}
             onTool={onTool}
           />
