@@ -1,5 +1,7 @@
 import type { CdpStatus, Screenshot } from "./cdp-types";
+import type { Command } from "./commands";
 import type { PageIndex } from "./page-index";
+import type { ActionResult } from "@/entrypoints/background/actions";
 
 export interface TabInfo {
   id: number;
@@ -23,7 +25,8 @@ export type PanelMessage =
   | { kind: "cdpDetach" }
   | { kind: "cdpScreenshot" }
   | { kind: "buildIndex" }
-  | { kind: "overlay"; on: boolean };
+  | { kind: "overlay"; on: boolean }
+  | { kind: "command"; command: Command };
 
 export type ContentMessage = { kind: "probePage" };
 
@@ -35,6 +38,7 @@ export type PanelReply =
   | { ok: true; kind: "cdpScreenshot"; status: CdpStatus; shot: Screenshot }
   | { ok: true; kind: "buildIndex"; status: CdpStatus; index: PageIndex }
   | { ok: true; kind: "overlay"; on: boolean; count: number; index?: PageIndex }
+  | { ok: true; kind: "command"; result: ActionResult; index?: PageIndex; overlayOn: boolean }
   | { ok: false; error: string };
 
 export const CONTENT_READY = "tiny-brow:content-ready";
@@ -49,6 +53,7 @@ const PANEL_KINDS: PanelMessage["kind"][] = [
   "cdpScreenshot",
   "buildIndex",
   "overlay",
+  "command",
 ];
 
 export function isPanelMessage(msg: unknown): msg is PanelMessage {
@@ -59,14 +64,60 @@ export function isPanelMessage(msg: unknown): msg is PanelMessage {
   );
 }
 
-export async function sendToBackground(msg: PanelMessage): Promise<PanelReply> {
+/** Nothing the background does should take this long once CDP calls are capped. */
+const REPLY_TIMEOUT_MS = 30_000;
+
+async function sendOnce(msg: PanelMessage): Promise<PanelReply | undefined> {
+  let timer: ReturnType<typeof setTimeout> | undefined;
+
+  const deadline = new Promise<PanelReply>((resolve) => {
+    timer = setTimeout(
+      () =>
+        resolve({
+          ok: false,
+          error: `"${msg.kind}" timed out after ${REPLY_TIMEOUT_MS / 1000}s — check the service worker console.`,
+        }),
+      REPLY_TIMEOUT_MS,
+    );
+  });
+
   try {
-    const reply = (await chrome.runtime.sendMessage(msg)) as PanelReply | undefined;
-    if (!reply) {
-      return { ok: false, error: "background did not reply" };
-    }
-    return reply;
-  } catch (err) {
-    return { ok: false, error: err instanceof Error ? err.message : String(err) };
+    return (await Promise.race([
+      chrome.runtime.sendMessage(msg) as Promise<PanelReply | undefined>,
+      deadline,
+    ])) as PanelReply | undefined;
+  } finally {
+    clearTimeout(timer);
   }
+}
+
+export async function sendToBackground(msg: PanelMessage): Promise<PanelReply> {
+  for (let attempt = 1; attempt <= 2; attempt++) {
+    try {
+      const reply = await sendOnce(msg);
+      if (reply) return reply;
+
+      // An undefined reply means no listener answered. The usual cause is the
+      // MV3 worker having been evicted: the message that wakes it can land
+      // before its listeners are registered and be dropped. The second attempt
+      // reaches a worker that is now awake.
+      if (attempt === 1) {
+        console.warn(`[tiny-brow panel] no reply to "${msg.kind}", retrying`);
+        await new Promise((r) => setTimeout(r, 150));
+        continue;
+      }
+      return {
+        ok: false,
+        error: `background did not reply to "${msg.kind}" (twice) — open the service worker console for the real error`,
+      };
+    } catch (err) {
+      const text = err instanceof Error ? err.message : String(err);
+      if (attempt === 1 && /message port closed|Receiving end does not exist/i.test(text)) {
+        await new Promise((r) => setTimeout(r, 150));
+        continue;
+      }
+      return { ok: false, error: `${msg.kind}: ${text}` };
+    }
+  }
+  return { ok: false, error: `background did not reply to "${msg.kind}"` };
 }

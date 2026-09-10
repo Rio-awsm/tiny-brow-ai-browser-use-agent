@@ -199,13 +199,42 @@ export async function detach(tabId: number) {
   console.log("[tiny-brow cdp] detach ok", tabId);
 }
 
+/**
+ * CDP commands are given a deadline because they do not always come back. A
+ * page that navigates while a command is in flight can leave the promise
+ * pending forever, which strands the message handler that awaited it — and a
+ * handler that never settles surfaces in the panel as "background did not
+ * reply", with nothing in the log to say why.
+ */
+const COMMAND_TIMEOUT_MS = 10_000;
+
 export async function send<T = unknown>(
   tabId: number,
   method: string,
   params?: Record<string, unknown>,
 ): Promise<T> {
-  const result = await chrome.debugger.sendCommand({ tabId }, method, params);
-  return result as T;
+  let timer: ReturnType<typeof setTimeout> | undefined;
+
+  const deadline = new Promise<never>((_, reject) => {
+    timer = setTimeout(
+      () =>
+        reject(
+          new CdpError(
+            `${method} did not return within ${COMMAND_TIMEOUT_MS / 1000}s — the page may have navigated mid-command.`,
+          ),
+        ),
+      COMMAND_TIMEOUT_MS,
+    );
+  });
+
+  try {
+    return (await Promise.race([
+      chrome.debugger.sendCommand({ tabId }, method, params),
+      deadline,
+    ])) as T;
+  } finally {
+    clearTimeout(timer);
+  }
 }
 
 interface LayoutMetrics {

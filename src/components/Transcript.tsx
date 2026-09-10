@@ -6,6 +6,8 @@ import {
   Info,
   Layers,
   Maximize2,
+  MousePointer2,
+  Terminal,
   TriangleAlert,
   X,
 } from "lucide-react";
@@ -21,6 +23,7 @@ import {
 } from "@/lib/page-index";
 import type { NoteLevel, PanelEvent } from "@/lib/store";
 import type { Screenshot } from "@/lib/cdp-types";
+import type { ActionResult } from "@/entrypoints/background/actions";
 
 const NOTE: Record<NoteLevel, { icon: typeof Info; tone: string }> = {
   info: { icon: Info, tone: "text-muted-foreground" },
@@ -53,6 +56,12 @@ export function Transcript({ events }: { events: PanelEvent[] }) {
                 return <ShotCard key={e.id} shot={e.shot} onZoom={() => setZoom(e.shot)} />;
               case "index":
                 return <IndexCard key={e.id} index={e.index} />;
+              case "command":
+                return <CommandBubble key={e.id} input={e.input} />;
+              case "action":
+                return <ActionCard key={e.id} result={e.result} />;
+              case "help":
+                return <HelpCard key={e.id} text={e.text} />;
             }
           })}
           <div ref={endRef} />
@@ -102,6 +111,46 @@ function TaskBubble({ text }: { text: string }) {
     <div className="self-end max-w-[85%] rounded-xl rounded-br-sm bg-primary/12 px-3 py-2 text-[11px] leading-relaxed text-foreground">
       {text}
     </div>
+  );
+}
+
+function CommandBubble({ input }: { input: string }) {
+  return (
+    <div className="flex items-center gap-1.5 self-end rounded-lg bg-secondary px-2 py-1 font-mono text-[10.5px] text-foreground">
+      <Terminal className="size-3 shrink-0 text-muted-foreground" />
+      {input}
+    </div>
+  );
+}
+
+function ActionCard({ result }: { result: ActionResult }) {
+  return (
+    <div className="rounded-lg border border-primary/25 bg-primary/8 px-2.5 py-2">
+      <div className="flex items-start gap-2">
+        <MousePointer2 className="mt-0.5 size-3 shrink-0 text-primary" />
+        <span className="min-w-0 flex-1 break-words font-mono text-[10.5px] leading-relaxed">
+          {result.summary}
+        </span>
+        <span className="mt-0.5 shrink-0 font-mono text-[9px] tabular-nums text-muted-foreground">
+          {result.tookMs} ms
+        </span>
+      </div>
+      {(result.detail || result.at) && (
+        <p className="mt-1 pl-5 font-mono text-[9px] text-muted-foreground">
+          {result.at ? `at ${result.at.x},${result.at.y}` : ""}
+          {result.at && result.detail ? " · " : ""}
+          {result.detail ?? ""}
+        </p>
+      )}
+    </div>
+  );
+}
+
+function HelpCard({ text }: { text: string }) {
+  return (
+    <pre className="overflow-x-auto rounded-lg border border-border bg-card px-2.5 py-2 font-mono text-[10px] leading-[1.6] text-foreground/85">
+      {text}
+    </pre>
   );
 }
 

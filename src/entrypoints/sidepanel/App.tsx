@@ -4,6 +4,7 @@ import { PanelHeader } from "@/components/PanelHeader";
 import { Transcript } from "@/components/Transcript";
 import { TooltipProvider } from "@/components/ui/tooltip";
 import { sendToBackground, type PanelMessage } from "@/lib/messaging";
+import { COMMAND_HELP, parseCommand } from "@/lib/commands";
 import { estimateTokens, serializeIndex } from "@/lib/page-index";
 import { usePanel } from "@/lib/store";
 
@@ -103,6 +104,11 @@ export function App() {
         setCdp(reply.status);
         push({ kind: "shot", shot: reply.shot });
         break;
+      case "command":
+        push({ kind: "action", result: reply.result });
+        if (reply.index) push({ kind: "index", index: reply.index });
+        setOverlayOn(reply.overlayOn);
+        break;
       case "overlay":
         setOverlayOn(reply.on);
         if (reply.index) push({ kind: "index", index: reply.index });
@@ -126,14 +132,49 @@ export function App() {
     setBusyTool(null);
   };
 
-  const run = () => {
+  const runCommand = async (input: string) => {
+    const parsed = parseCommand(input);
+    if (!parsed) return false;
+
+    push({ kind: "command", input });
+    setTask("");
+
+    if (!parsed.ok) {
+      note("error", parsed.error);
+      return true;
+    }
+
+    if (parsed.command.kind === "help") {
+      push({ kind: "help", text: COMMAND_HELP });
+      return true;
+    }
+    if (parsed.command.kind === "index") {
+      await runTool("index");
+      return true;
+    }
+
+    setRunning(true);
+    const reply = await sendToBackground({ kind: "command", command: parsed.command });
+    if (!reply.ok) {
+      note("error", reply.error);
+      await refresh();
+    } else if (reply.kind === "command") {
+      push({ kind: "action", result: reply.result });
+      if (reply.index) push({ kind: "index", index: reply.index });
+      setOverlayOn(reply.overlayOn);
+    }
+    setRunning(false);
+    return true;
+  };
+
+  const run = async () => {
     const text = task.trim();
     if (!text) return;
-    setRunning(true);
+    if (await runCommand(text)) return;
+
     push({ kind: "task", text });
     setTask("");
     note("info", "no agent yet — the observe-decide-act loop lands in M9");
-    setTimeout(() => setRunning(false), 500);
   };
 
   return (
@@ -153,7 +194,7 @@ export function App() {
           busyTool={busyTool}
           overlayOn={overlayOn}
           onChange={setTask}
-          onRun={run}
+          onRun={() => void run()}
           onStop={() => setRunning(false)}
           onTool={runTool}
         />

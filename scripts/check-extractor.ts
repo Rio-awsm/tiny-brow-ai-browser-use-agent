@@ -91,7 +91,8 @@ function invoke(source: string): void {
   const keys = Object.keys(stub);
   const factory = new Function(...keys, `return (${source});`);
   const fn = factory(...keys.map((k) => stub[k])) as (...args: unknown[]) => unknown;
-  // The indexer takes (indexCap, textCap); the overlay functions ignore args.
+  // The indexer takes (indexCap, textCap) and focusIndexed takes (index,
+  // selectAll); both are satisfied by these, and the overlay pair ignores args.
   fn(40, 4000);
 }
 
@@ -113,6 +114,10 @@ function makeStubDom(): Record<string, unknown> {
       checked: false,
       disabled: false,
       selectedOptions: [],
+      isConnected: true,
+      focus() {},
+      select() {},
+      scrollIntoView() {},
       parentElement: null,
       hasAttribute: () => false,
       getAttribute: () => null,
@@ -157,9 +162,12 @@ function makeStubDom(): Record<string, unknown> {
       visibility: "visible",
       opacity: "1",
     }),
-    // One stashed element, so the overlay builds a box and repositions it
-    // instead of returning early.
-    __tinyBrow: { els: [makeEl("button")], meta: [{ i: 0, role: "button", label: "Go" }] },
+    // Sized past the highest index any injected function is called with below,
+    // so none of them bail out before reaching their helpers.
+    __tinyBrow: {
+      els: Array.from({ length: 64 }, () => makeEl("button")),
+      meta: Array.from({ length: 64 }, (_, i) => ({ i, role: "button", label: "Go" })),
+    },
   };
   doc.defaultView = win;
 

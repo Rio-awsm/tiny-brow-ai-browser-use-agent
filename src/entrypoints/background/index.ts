@@ -1,6 +1,7 @@
 import * as cdp from "./cdp";
 import { buildIndex } from "./extract";
-import { hideHighlights, showHighlights } from "./overlay";
+import { hideHighlights, isOverlayOn, showHighlights } from "./overlay";
+import { NO_INDEX, runCommand } from "./actions";
 import {
   isPanelMessage,
   type ContentMessage,
@@ -22,16 +23,31 @@ export default defineBackground(() => {
     if (sender.tab) return false;
 
     console.log("[tiny-brow bg] <-", msg.kind);
-    handle(msg)
-      .then((reply) => {
-        console.log("[tiny-brow bg] ->", reply.ok ? reply.kind : `error: ${reply.error}`);
-        sendResponse(reply);
-      })
-      .catch((err: unknown) => {
-        const error = err instanceof Error ? err.message : String(err);
-        console.warn("[tiny-brow bg] -> error:", error);
-        sendResponse({ ok: false, error } satisfies PanelReply);
-      });
+    try {
+      handle(msg)
+        .then((reply) => {
+          console.log("[tiny-brow bg] ->", reply.ok ? reply.kind : `error: ${reply.error}`);
+          sendResponse(reply);
+        })
+        .catch((err: unknown) => {
+          // Log the whole error, not just its message: the stack is the only
+          // way to tell a CDP refusal from a bug in our own handler.
+          console.error("[tiny-brow bg] handler rejected", msg.kind, err);
+          sendResponse({
+            ok: false,
+            error: err instanceof Error ? err.message : String(err),
+          } satisfies PanelReply);
+        });
+    } catch (err) {
+      // A synchronous throw would otherwise close the port with no response,
+      // which the panel can only report as silence.
+      console.error("[tiny-brow bg] handler threw synchronously", msg.kind, err);
+      sendResponse({
+        ok: false,
+        error: err instanceof Error ? err.message : String(err),
+      } satisfies PanelReply);
+      return false;
+    }
 
     return true;
   });
@@ -87,6 +103,39 @@ async function handle(msg: PanelMessage): Promise<PanelReply> {
           status: await cdp.status(tab.id, tab.url),
           index,
         };
+      } finally {
+        if (!wasAttached) await cdp.detach(tab.id).catch(() => {});
+      }
+    }
+
+    case "command": {
+      const tab = await requireTab();
+      const wasAttached = (await cdp.status(tab.id, tab.url)).state === "attached";
+      await cdp.attach(tab.id, tab.url, false);
+      try {
+        const hadOverlay = await isOverlayOn(tab.id);
+
+        let result;
+        try {
+          result = await runCommand(tab.id, msg.command);
+        } catch (err) {
+          // Only index when the page has none. Re-indexing first would renumber
+          // everything under a user who is acting on numbers they can see.
+          if (!(err instanceof Error) || !err.message.includes(NO_INDEX)) throw err;
+          await buildIndex(tab.id);
+          result = await runCommand(tab.id, msg.command);
+        }
+
+        // A navigation invalidates everything; let the panel re-index when the
+        // new page is there.
+        if (msg.command.kind === "goto") {
+          return { ok: true, kind: "command", result, overlayOn: false };
+        }
+
+        await new Promise((r) => setTimeout(r, 250));
+        const index = await buildIndex(tab.id);
+        if (hadOverlay) await showHighlights(tab.id);
+        return { ok: true, kind: "command", result, index, overlayOn: hadOverlay };
       } finally {
         if (!wasAttached) await cdp.detach(tab.id).catch(() => {});
       }

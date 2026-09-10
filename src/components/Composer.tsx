@@ -10,6 +10,7 @@ import {
   MousePointerClick,
   ScanEye,
   Square,
+  Terminal,
   Wrench,
   Zap,
 } from "lucide-react";
@@ -17,6 +18,7 @@ import { Button } from "@/components/ui/button";
 import { Textarea } from "@/components/ui/textarea";
 import { TooltipButton } from "@/components/ui/tooltip-button";
 import { cn } from "@/lib/utils";
+import { parseCommand } from "@/lib/commands";
 import type { CdpStatus } from "@/lib/cdp-types";
 
 export type ToolId =
@@ -54,6 +56,7 @@ export function Composer({
 }: Props) {
   const [tools, setTools] = useState(false);
   const empty = task.trim().length === 0;
+  const parsed = parseCommand(task);
   const attached = cdp?.state === "attached";
   const restricted = cdp?.state === "restricted";
   const busy = busyTool !== null;
@@ -133,6 +136,20 @@ export function Composer({
         </div>
       )}
 
+      {parsed && (
+        <p
+          className={cn(
+            "flex items-center gap-1.5 border-b border-border px-3 py-1.5 font-mono text-[10px]",
+            parsed.ok
+              ? "bg-primary/8 text-primary"
+              : "bg-destructive/8 text-destructive",
+          )}
+        >
+          <Terminal className="size-2.5 shrink-0" />
+          {parsed.ok ? parsed.summary : parsed.error}
+        </p>
+      )}
+
       {restricted && cdp?.reason && (
         <p className="border-b border-border bg-warning/8 px-3 py-1.5 text-[10px] leading-relaxed text-warning">
           {cdp.reason}
@@ -152,7 +169,7 @@ export function Composer({
             }}
             rows={2}
             spellCheck={false}
-            placeholder="Ask Tiny to do something on this page…"
+            placeholder="Ask Tiny to do something, or run a command like /click 7"
             disabled={running}
             className="pr-11"
           />
@@ -194,7 +211,7 @@ export function Composer({
           )}
 
           <span className="ml-auto text-[10px] text-muted-foreground/60">
-            Enter to send
+            {parsed?.ok ? "Enter to run" : "Enter to send"}
           </span>
         </div>
       </div>

@@ -137,6 +137,11 @@ function showOverlay() {
   return { count: boxes.length };
 }
 
+function overlayState() {
+  const store = (window as unknown as Record<string, any>).__tinyBrow;
+  return { count: store?.overlay ? 1 : 0 };
+}
+
 function hideOverlay() {
   const store = (window as unknown as Record<string, any>).__tinyBrow;
   store?.overlay?.destroy();
@@ -172,3 +177,7 @@ export const showHighlights = (tabId: number) =>
 
 export const hideHighlights = (tabId: number) =>
   run(tabId, `(${hideOverlay.toString()})()`);
+
+/** Whether the page currently has an overlay, so an action can restore it. */
+export const isOverlayOn = async (tabId: number) =>
+  (await run(tabId, `(${overlayState.toString()})()`)) === 1;
