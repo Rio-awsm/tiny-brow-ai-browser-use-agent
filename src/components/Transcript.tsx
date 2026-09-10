@@ -24,6 +24,7 @@ import {
 import type { NoteLevel, PanelEvent } from "@/lib/store";
 import type { Screenshot } from "@/lib/cdp-types";
 import type { ActionResult } from "@/entrypoints/background/actions";
+import { ProposalCard } from "@/components/ProposalCard";
 
 const NOTE: Record<NoteLevel, { icon: typeof Info; tone: string }> = {
   info: { icon: Info, tone: "text-muted-foreground" },
@@ -32,7 +33,14 @@ const NOTE: Record<NoteLevel, { icon: typeof Info; tone: string }> = {
   error: { icon: TriangleAlert, tone: "text-destructive" },
 };
 
-export function Transcript({ events }: { events: PanelEvent[] }) {
+interface TranscriptProps {
+  events: PanelEvent[];
+  busy: boolean;
+  onExecute: (id: number) => void;
+  onReject: (id: number) => void;
+}
+
+export function Transcript({ events, busy, onExecute, onReject }: TranscriptProps) {
   const endRef = useRef<HTMLDivElement>(null);
   const [zoom, setZoom] = useState<Screenshot | null>(null);
 
@@ -62,6 +70,17 @@ export function Transcript({ events }: { events: PanelEvent[] }) {
                 return <ActionCard key={e.id} result={e.result} />;
               case "help":
                 return <HelpCard key={e.id} text={e.text} />;
+              case "proposal":
+                return (
+                  <ProposalCard
+                    key={e.id}
+                    proposal={e.proposal}
+                    state={e.state}
+                    busy={busy}
+                    onExecute={() => onExecute(e.id)}
+                    onReject={() => onReject(e.id)}
+                  />
+                );
             }
           })}
           <div ref={endRef} />

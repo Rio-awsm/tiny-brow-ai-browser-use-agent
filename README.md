@@ -8,10 +8,10 @@ name, and the agent runs on whatever OpenAI-compatible endpoint answers — Groq
 OpenRouter, Google AI Studio, LiteLLM, a local LM Studio server, or anything else
 speaking the same wire format.
 
-> **Status: M7.** The provider layer is in: point Tiny at any OpenAI-compatible
-> endpoint from the settings screen and test it in one click. Nothing decides what to
-> do yet — the prompt and the loop are M8 and M9 — so every harness task still
-> reports `not_implemented`.
+> **Status: M8.** Tiny decides. Give it a task and it proposes one action, with its
+> reason, which you approve or reject. **You are still the loop** — it takes one step
+> per press. Closing the loop is M9, so every harness task still reports
+> `not_implemented`.
 >
 > The extension is called **Tiny** in the UI; `tiny-brow` is the project name.
 
@@ -29,7 +29,8 @@ The build runs through sixteen gated milestones (`docs/browser-agent-build-guide
 | M5 | Manual actuation | **done** |
 | M6 | The cursor overlay | **done** |
 | M7 | The provider layer | **done** |
-| M8 | Single-step decision | next |
+| M8 | Single-step decision | **done** |
+| M9 | Close the loop | next |
 | M7–M10 | Provider layer, agent loop, provider matrix | |
 | M11–M14 | Compression, repair, safety gate, router | |
 | M15 | Packaging and release | |
@@ -226,6 +227,71 @@ Text entry has two strategies because one is not enough. `Input.insertText` is f
 and right for bulk, but some search boxes only open their autocomplete on a genuine
 keydown and ignore a bulk insert entirely — `type -k` sends the keystrokes one at a
 time for those.
+
+## Deciding what to do
+
+Type a task and Tiny proposes **one** action, shown as a card with its stated reason
+and an Execute / Reject pair. Executing runs it through the same actuation layer the
+manual commands use and records a one-line summary; pressing Run again asks for the
+next step. Rejecting re-asks with the rejection stated, so it proposes something
+different rather than repeating itself.
+
+### The action schema
+
+Seven verbs — `click`, `type`, `scroll`, `navigate`, `extract`, `done`, `fail` — and
+no more. Every extra verb is another thing to pick wrongly, and the `enum` on the name
+is what stops the model inventing one.
+
+Every field is required, with `null` where an action does not use it. `.optional()`
+would drop a field out of `required`, which strict mode rejects; a fixed shape also
+means the model never has to decide whether to include a key.
+
+Schema-constrained decoding guarantees the *shape*, never the *meaning*, so an index
+the model chose is checked against the index it was actually given. An out-of-range
+number is refused locally with the valid range named, and the card offers "Ask again"
+instead of Execute.
+
+`type` types only. To submit a search or a form, the model clicks the button
+afterwards — which keeps the verb count down and composes correctly on multi-field
+forms, where an implicit Enter would submit halfway through.
+
+### Prompt assembly
+
+Fixed order, and the order is the point:
+
+```
+1. system    role, actions, rules, safety     ← byte-identical, always
+2. task      stated once
+3. history   one line per past step
+4. state     url, title, element index, page text
+```
+
+Providers cache on an **exact prefix match**, so everything that varies sits at the
+end. Interleaving changing content into the system prompt destroys prefix caching
+outright. It costs nothing on a fast hosted backend and is the single largest latency
+win on a local one, so it is built this way unconditionally — the proposal card shows
+the cached token count when the provider reports one.
+
+History is one line per step and never a past page state. That is what keeps step 30
+costing the same as step 3.
+
+### Starting from a page it cannot read
+
+Chrome blocks CDP on its own pages, so a new-tab page cannot be indexed. That is not
+a failure: `navigate` needs no debugger session, so the model is handed a page state
+that says the page cannot be inspected and that navigating is the useful move. Failing
+there instead would make a fresh window a dead end the agent could never start from.
+
+### Prompt injection
+
+Page text arrives wrapped in `<page_content>` fences, and the system prompt — the part
+the model sees first and that never changes — declares everything inside them to be
+untrusted data that is never an instruction.
+
+This matters more here than for a cloud agent: Tiny runs inside a browser logged into
+everything you own, and a page can contain text addressed to it. The fence is one
+sentence and it is the cheapest defence available; M13 adds the code-level gate that
+does not depend on the model remembering.
 
 ## Bringing your own key
 
@@ -456,6 +522,7 @@ src/
   components/         panel UI: header, transcript, composer, logo
     ui/               shadcn-style primitives
   lib/                messaging protocol, command parser, types, zustand store
+    agent/            action schema and prompt assembly
     provider/         the BYOK layer: one implementation, presets as data
   styles/theme.css    OKLCH design tokens, light and dark
 public/icon/          toolbar icons, generated by `npm run icons`

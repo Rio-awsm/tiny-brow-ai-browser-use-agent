@@ -40,6 +40,8 @@ interface Props {
   busyTool: ToolId | null;
   overlayOn: boolean;
   cursorOn: boolean;
+  /** A task is in flight, so an empty input means "propose the next step". */
+  canContinue: boolean;
   onChange: (task: string) => void;
   onRun: () => void;
   onStop: () => void;
@@ -53,6 +55,7 @@ export function Composer({
   busyTool,
   overlayOn,
   cursorOn,
+  canContinue,
   onChange,
   onRun,
   onStop,
@@ -61,6 +64,7 @@ export function Composer({
   const [tools, setTools] = useState(false);
   const empty = task.trim().length === 0;
   const parsed = parseCommand(task);
+  const canSend = !empty || canContinue;
   const attached = cdp?.state === "attached";
   const restricted = cdp?.state === "restricted";
   const busy = busyTool !== null;
@@ -188,12 +192,16 @@ export function Composer({
             onKeyDown={(e) => {
               if (e.key === "Enter" && !e.shiftKey) {
                 e.preventDefault();
-                if (!empty && !running) onRun();
+                if (canSend && !running) onRun();
               }
             }}
             rows={2}
             spellCheck={false}
-            placeholder="Ask Tiny to do something, or run a command like /click 7"
+            placeholder={
+              canContinue
+                ? "Press Run for the next step, or type a new task"
+                : "Ask Tiny to do something, or run a command like /click 7"
+            }
             disabled={running}
             className="pr-11"
           />
@@ -203,7 +211,7 @@ export function Composer({
                 <Square />
               </Button>
             ) : (
-              <Button variant="primary" size="icon" onClick={onRun} disabled={empty}>
+              <Button variant="primary" size="icon" onClick={onRun} disabled={!canSend}>
                 <ArrowUp />
               </Button>
             )}
@@ -235,7 +243,7 @@ export function Composer({
           )}
 
           <span className="ml-auto text-[10px] text-muted-foreground/60">
-            {parsed?.ok ? "Enter to run" : "Enter to send"}
+            {parsed?.ok ? "Enter to run" : empty && canContinue ? "Enter for next step" : "Enter to send"}
           </span>
         </div>
       </div>

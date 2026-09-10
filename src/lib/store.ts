@@ -3,6 +3,7 @@ import type { CdpStatus, Screenshot } from "./cdp-types";
 import type { TabInfo } from "./messaging";
 import type { PageIndex } from "./page-index";
 import type { ActionResult } from "@/entrypoints/background/actions";
+import type { Proposal } from "@/lib/agent";
 
 export type NoteLevel = "info" | "sent" | "recv" | "error";
 
@@ -18,7 +19,12 @@ export type PanelEvent =
   | (Base & { kind: "index"; index: PageIndex })
   | (Base & { kind: "command"; input: string })
   | (Base & { kind: "action"; result: ActionResult })
-  | (Base & { kind: "help"; text: string });
+  | (Base & { kind: "help"; text: string })
+  | (Base & {
+      kind: "proposal";
+      proposal: Proposal;
+      state: "pending" | "executed" | "rejected";
+    });
 
 /** Omit over a union must distribute, or the branches collapse to their overlap. */
 type DistributiveOmit<T, K extends PropertyKey> = T extends unknown ? Omit<T, K> : never;
@@ -36,6 +42,8 @@ interface PanelState {
   setCdp: (cdp: CdpStatus | null) => void;
   note: (level: NoteLevel, text: string) => void;
   push: (event: NewPanelEvent) => void;
+  /** Proposal cards are the one event that changes after it is written. */
+  resolveProposal: (id: number, state: "executed" | "rejected") => void;
   clear: () => void;
 }
 
@@ -55,5 +63,11 @@ export const usePanel = create<PanelState>((set) => ({
   note: (level, text) =>
     set((s) => ({ events: [...s.events, { ...stamp(), kind: "note", level, text }] })),
   push: (event) => set((s) => ({ events: [...s.events, { ...stamp(), ...event }] })),
+  resolveProposal: (id, state) =>
+    set((s) => ({
+      events: s.events.map((e) =>
+        e.id === id && e.kind === "proposal" ? { ...e, state } : e,
+      ),
+    })),
   clear: () => set({ events: [] }),
 }));
