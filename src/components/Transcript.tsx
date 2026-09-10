@@ -26,6 +26,8 @@ import type { Screenshot } from "@/lib/cdp-types";
 import type { ActionResult } from "@/entrypoints/background/actions";
 import { ProposalCard } from "@/components/ProposalCard";
 import { AskCard } from "@/components/AskCard";
+import { ApprovalCard } from "@/components/ApprovalCard";
+import { PlanCard, VerdictNote } from "@/components/PlanCard";
 import { RunSummary, StepCard } from "@/components/StepCard";
 
 const NOTE: Record<NoteLevel, { icon: typeof Info; tone: string }> = {
@@ -41,6 +43,7 @@ interface TranscriptProps {
   onExecute: (id: number) => void;
   onReject: (id: number) => void;
   onAnswerAsk: (id: number, reply: import("@/lib/agent/loop").AskReply) => void;
+  onAnswerApproval: (id: number, allowed: boolean) => void;
 }
 
 export function Transcript({
@@ -49,6 +52,7 @@ export function Transcript({
   onExecute,
   onReject,
   onAnswerAsk,
+  onAnswerApproval,
 }: TranscriptProps) {
   const endRef = useRef<HTMLDivElement>(null);
   const [zoom, setZoom] = useState<Screenshot | null>(null);
@@ -90,6 +94,21 @@ export function Transcript({
                     onAnswer={(reply) => onAnswerAsk(e.id, reply)}
                   />
                 );
+              case "approval":
+                return (
+                  <ApprovalCard
+                    key={e.id}
+                    request={e.request}
+                    answer={e.answer}
+                    onAnswer={(allowed) => onAnswerApproval(e.id, allowed)}
+                  />
+                );
+              case "plan":
+                return (
+                  <PlanCard key={e.id} steps={e.steps} watchOut={e.watchOut} replanned={e.replanned} />
+                );
+              case "verdict":
+                return <VerdictNote key={e.id} met={e.met} why={e.why} />;
               case "summary":
                 return <RunSummary key={e.id} event={e} />;
               case "proposal":

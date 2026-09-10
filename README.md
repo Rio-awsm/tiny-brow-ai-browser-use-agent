@@ -31,10 +31,11 @@ The build runs through sixteen gated milestones (`docs/browser-agent-build-guide
 | M8 | Single-step decision | **done** |
 | M9 | Close the loop | **done** |
 | M10 | The provider matrix | **done** |
-| M11 | Context compression | next |
-| M7–M10 | Provider layer, agent loop, provider matrix | |
-| M11–M14 | Compression, repair, safety gate, router | |
-| M15 | Packaging and release | |
+| M11 | Context compression | **done** |
+| M12 | Repair, retry, loop breaking | **done** |
+| M13 | The safety gate | **done** |
+| M14 | Validator and model router | **done** |
+| M15 | Packaging and release | next |
 
 ## Running the extension
 
@@ -249,8 +250,14 @@ is how you debug a run that went wrong.
 | `429` from the provider | Waits the provider's own `retry-after` — backing off with jitter only when it does not say — and retries the same step. |
 | Stop pressed | Halts within one step. The panel stops between steps and the background aborts whatever request or action is already in flight. |
 | Step cap | Ends the run cleanly with `step_cap`, rather than running forever. |
-| `extract` | Records the fact into history and keeps going. It is an observation, not an ending. |
+| `extract` | Appends the fact to NOTES and keeps going. It is an observation, not an ending. |
 | Page still loading | The waiting layer runs before every read, so a step never reasons about a half-rendered page. |
+| An action changed nothing | The next turn is told so in words — same URL, same scroll, same elements. A model shown a page cannot see a diff, and left to infer it, it clicks the same dead button until the cap. |
+| The same choice twice | The element is named and forbidden. Handing over on the third identical action was too quick: nothing had ever told the model that the thing did not work. |
+| The same choice three times | The plan is rewritten once, then the run is handed to you. |
+| Off-schema reply | Retried twice. One bad decode is a provider flake, and failing the task over it scores the endpoint's hiccup as the agent being unable to do the job. |
+| `fail` on the first attempt | Challenged once. Giving up is cheap for the model and expensive for you, and it often does it while its own reason names the next thing to try. |
+| `done` | Checked by a second, independent call before the run ends. |
 
 The loop takes its dependencies as arguments rather than reaching for them, so the
 parts that decide whether it behaves — the cap, stopping, repair, surviving a 429 —
@@ -328,8 +335,10 @@ Fixed order, and the order is the point:
 ```
 1. system    role, actions, rules, safety     ← byte-identical, always
 2. task      stated once
-3. history   one line per past step
-4. state     url, title, element index, page text
+3. plan      the ordered steps, when a plan was written
+4. history   one line per past step
+5. notes     every fact extracted, verbatim
+6. state     url, title, element index, page text
 ```
 
 Providers cache on an **exact prefix match**, so everything that varies sits at the
@@ -339,7 +348,22 @@ win on a local one, so it is built this way unconditionally — the proposal car
 the cached token count when the provider reports one.
 
 History is one line per step and never a past page state. That is what keeps step 30
-costing the same as step 3.
+costing the same as step 3, and `npm run plot:tokens` is where you check it did.
+
+**NOTES** is the exception that has to be verbatim, and it is the one part of the
+prompt that is allowed to grow. History lines are truncated summaries, so a model that
+found three prices thirty steps ago can no longer read them back — and what it does
+instead is re-extract the first one forever, or leave a site without taking what it
+came for. Facts go in whole; the block is capped per note and the model is told not to
+add a fact that is already there.
+
+**Page text is centred on the viewport, not taken from the top.** `body.innerText`
+sliced from the beginning is the wrong excerpt on any long document: scroll to a table
+halfway down an article and the model is still reading the lead paragraph, so it either
+answers from the wrong part of the page or scrolls forever looking for what it has
+already been shown. Blocks are measured in one batch — one layout pass, not a reflow
+per node — and the excerpt grows outward from whichever block the viewport is centred
+on, so it keeps its reading order.
 
 ### Starting from a page it cannot read
 
@@ -356,8 +380,87 @@ untrusted data that is never an instruction.
 
 This matters more here than for a cloud agent: Tiny runs inside a browser logged into
 everything you own, and a page can contain text addressed to it. The fence is one
-sentence and it is the cheapest defence available; M13 adds the code-level gate that
-does not depend on the model remembering.
+sentence and it is the cheapest defence available.
+
+Behind it sits a second layer that does not depend on the model remembering anything.
+Every page is scanned for text that reads as an instruction rather than as content —
+*ignore all previous instructions*, *you are now*, *do not tell the user*. When any is
+found the model is told, in the NOTICE line it reads first, that the page is trying it
+and that the text is data. And if the model's own stated reason for an action turns out
+to be quoting one of those spans back — six consecutive words is the threshold — the
+action is refused before it dispatches, whatever it was.
+
+## What Tiny will not do
+
+The gate is [code](src/lib/agent/safety.ts), deliberately, and not a prompt rule. A
+model reading forty steps of history forgets what it was told at the top; a function
+does not. Every proposed action passes through it before anything else looks at the
+action, so no later branch can route around it.
+
+**Refused outright, with no way to approve it:**
+
+| | |
+|---|---|
+| Passwords, PINs, OTPs, CVVs, card numbers, UPI PINs | You type those, in the tab. Tiny never touches the keyboard for them. |
+| Sign-in, registration and OAuth flows | Recognised from the URL. Tiny stops and asks you to do it. |
+| Anything justified by quoting the page's own instructions | See above. |
+| Any site outside the run's allowed list | Off by default. When you turn it on, an allow list of host globs is the whole story and the deny list wins over it. |
+
+**Held until you click Allow:**
+
+Spending money and destroying things: *pay now*, *proceed to pay*, *place order*,
+*checkout*, *buy now*, *confirm order*, *book now*, *transfer*, *withdraw*, *delete*,
+*close account*, *unsubscribe*, *cancel subscription*. Matched on the element's own
+visible label *and*, independently, on the destination URL, so a checkout reached by
+link is caught the same way as one reached by button.
+
+Not on form mechanics. A bare *submit* and *send* were on that list for one afternoon
+and gated **every search box on the web** — "Go" on Amazon is an `<input
+type="submit">`, and the indexer notes the input's type, so the gate read `submit` off
+the note and refused the search. A gate that stops ordinary work is a gate the user
+turns off, which protects nobody. It reads the label only now, and the label has to
+name the commitment.
+
+The approval card states the verb, the element's own label and the page it is on,
+because an approval that only says *continue?* trains you to click yes. Nothing is
+pre-selected. **With nobody watching — a scored benchmark run — it refuses rather than
+allows.** A default the other way would mean the test suite could place an order.
+
+Banks are handled by the allow list rather than a list of banks. Naming the domains to
+keep out is a game you lose, because there is always one more; naming the ones a task
+needs is finite, and it is also what stops a grocery task wandering into your email.
+
+## Plan, navigate, check
+
+Three roles, after Nanobrowser's split, because they want different models:
+
+| Role | Called | Wants |
+|---|---|---|
+| **Planner** | Once at the start, once more if the run gets stuck | A stronger model. It runs twice a run against a step cap of forty. |
+| **Navigator** | Every step | Cheap and fast. This is where the whole cost of a run is. |
+| **Validator** | When the agent says `done` | Almost anything. Its prompt is tiny. |
+
+A route is nothing but `(base URL, key, model, extraParams)` — the same triple the
+provider layer already speaks — so the navigator can run on a local model while the
+planner reaches for a hosted one in the same run. Each role falls back field by field
+to the single configured provider, so the feature costs nothing until you want it, and
+pointing one role at a better model on the same endpoint is typing a model name.
+
+A key belongs to an endpoint: when a route names a different base URL, the base key is
+**not** carried across to it.
+
+**The validator** exists because premature completion is the most expensive failure a
+browser agent has — it does not look like a failure. The run ends green, the transcript
+reads sensibly, and the answer is *"I will now look for the price"*. The model that
+spent thirty steps convincing itself is the worst possible judge of that, so the check
+is a separate call that sees only the task, the notes and the final page — no history,
+no reasoning to agree with. It argues once; a rejected answer comes back with the
+reason attached, and the run carries on.
+
+**The planner** exists because a small model choosing one action at a time is good at
+*what do I click* and bad at *which site holds which fact, and in what order*. That gap
+is what loses a two-site comparison: it searches the first site, leaves without reading
+the price, and arrives at the second with nothing to compare.
 
 ## Bringing your own key
 
@@ -626,7 +729,13 @@ npm run verify:tasks   # tasks.md and harness/tasks.ts agree
 npm run check:secrets  # no credential can reach the extension bundle
 npm run check:chars    # no control characters in source
 npm run check:loop     # the agent loop against a scripted model
+npm run plot:tokens    # prompt tokens per step, from the last scored run
 ```
+
+`plot:tokens` is the evidence for the compression claim. History is one line per past
+step and the page index is only ever the current one, so the prompt should not grow with
+the run; the chart says whether it actually does, and shading shows how much of each
+step the provider served from its own cache.
 
 `check:loop` replaces the model with a list of replies and the browser with a page
 that only changes when the case says it does, which leaves the loop's own judgement
@@ -671,11 +780,19 @@ src/
       cursor.ts       the injected animated cursor
       settle.ts       the waiting layer: network quiet, then DOM stability
     content/          injected into every page; probes and, later, overlays
-    sidepanel/        the React panel — where the agent loop will live
-  components/         panel UI: header, transcript, composer, logo
+    sidepanel/        the React panel — where the agent loop runs
+  components/         panel UI: header, transcript, composer, logo, cards
     ui/               shadcn-style primitives
   lib/                messaging protocol, command parser, types, zustand store
-    agent/            action schema, prompt assembly, the observe-decide-act loop
+    settings.ts       step cap, roles, firewall — what a run is allowed to be
+    agent/
+      schema.ts       the eight verbs, and what a well-formed action is
+      prompt.ts       prompt assembly, in a fixed order
+      loop.ts         observe, decide, act — with repair, retry and loop breaking
+      safety.ts       the gate: refusals, approvals, the firewall, injection
+      planner.ts      the plan, written once and again when stuck
+      validator.ts    the second opinion on `done`
+      roles.ts        a route is (base URL, key, model, extraParams)
     provider/         the BYOK layer: one implementation, presets as data
   styles/theme.css    OKLCH design tokens, light and dark
 public/icon/          toolbar icons, generated by `npm run icons`
@@ -694,6 +811,10 @@ harness/
 scripts/
   check-secrets.ts    the credential boundary, enforced
   check-extractor.ts  proves every injected function survives bundling
+  check-chars.ts      no control characters in source
+  loop-cases.ts       the loop against a scripted model, no browser, no key
+  plot-tokens.ts      prompt tokens per step, from a scored run
+  fixtures.ts         serves fixtures/gauntlet on :5199
   make-icons.ts       renders the mark to PNG, no image toolchain needed
 docs/
   browser-agent-build-guide.md

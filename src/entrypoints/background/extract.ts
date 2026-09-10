@@ -241,6 +241,57 @@ function extractPage(indexCap: number, textCap: number) {
   }
 
   /** Walks a root, piercing shadow roots and same-origin iframes. */
+  /**
+   * The readable text around where the page is currently looking.
+   *
+   * `body.innerText` sliced from the top is the wrong excerpt on any long
+   * document: scroll to a table halfway down an article and the model is still
+   * reading the lead paragraph, so it answers from the wrong part of the page or
+   * scrolls forever looking for what it was already shown.
+   *
+   * Blocks are measured once, in one batch, so this costs a single layout pass
+   * rather than a reflow per node — the trap that made the indexer slow on large
+   * pages. The node list is capped for the same reason.
+   */
+  function viewportText(cap: number): { text: string; total: number } {
+    const BLOCKS = "p,li,h1,h2,h3,h4,h5,h6,td,th,dd,dt,blockquote,figcaption,pre,summary";
+    const clean = (s: string) => s.replace(/[ \t]+/g, " ").replace(/\n{3,}/g, "\n\n").trim();
+    const whole = clean((document.body as HTMLElement | null)?.innerText ?? "");
+    if (whole.length <= cap) return { text: whole, total: whole.length };
+
+    const nodes = Array.from(document.querySelectorAll(BLOCKS)).slice(0, 800);
+    const blocks: { top: number; text: string }[] = [];
+    for (const node of nodes) {
+      const body = (node as HTMLElement).innerText;
+      if (!body) continue;
+      const trimmed = clean(body);
+      if (trimmed.length < 2) continue;
+      blocks.push({ top: node.getBoundingClientRect().top + window.scrollY, text: trimmed });
+    }
+    if (blocks.length === 0) return { text: whole.slice(0, cap), total: whole.length };
+
+    blocks.sort((a, b) => a.top - b.top);
+
+    // Grow outwards from whichever block the viewport is centred on, so the
+    // excerpt keeps its reading order and always includes what is on screen.
+    const focus = window.scrollY + window.innerHeight / 2;
+    const gap = (i: number) => Math.abs((blocks[i]?.top ?? 0) - focus);
+    let nearest = 0;
+    for (let i = 1; i < blocks.length; i++) if (gap(i) < gap(nearest)) nearest = i;
+
+    let lo = nearest;
+    let hi = nearest;
+    let size = blocks[nearest]?.text.length ?? 0;
+    while (size < cap && (lo > 0 || hi < blocks.length - 1)) {
+      const takeBelow = lo === 0 || (hi < blocks.length - 1 && gap(hi + 1) <= gap(lo - 1));
+      const next = takeBelow ? blocks[++hi] : blocks[--lo];
+      size += (next?.text.length ?? 0) + 1;
+    }
+
+    const excerpt = blocks.slice(lo, hi + 1).map((b) => b.text).join("\n").slice(0, cap);
+    return { text: lo > 0 ? `…\n${excerpt}` : excerpt, total: whole.length };
+  }
+
   function collect(root: Document | ShadowRoot, doc: Document, offX: number, offY: number, frame: string, depth: number) {
     if (depth > 6) return;
 
@@ -365,10 +416,15 @@ function extractPage(indexCap: number, textCap: number) {
   store.meta = elements.map((e) => ({ i: e.i, role: e.role, label: e.label }));
   (window as unknown as Record<string, any>).__tinyBrow = store;
 
-  const text = (document.body?.innerText ?? "")
-    .replace(/[ \t]+/g, " ")
-    .replace(/\n{3,}/g, "\n\n")
-    .trim();
+  // Falls back rather than throws: a page whose layout defeats the measuring
+  // pass should read worse, not stop the agent from seeing it at all.
+  let excerpt: { text: string; total: number };
+  try {
+    excerpt = viewportText(textCap);
+  } catch {
+    const flat = ((document.body as HTMLElement | null)?.innerText ?? "").trim();
+    excerpt = { text: flat.slice(0, textCap), total: flat.length };
+  }
 
   return {
     url: location.href,
@@ -382,8 +438,8 @@ function extractPage(indexCap: number, textCap: number) {
       scrollY: Math.round(window.scrollY),
       docH: Math.round(document.documentElement.scrollHeight),
     },
-    text: text.slice(0, textCap),
-    textChars: text.length,
+    text: excerpt.text,
+    textChars: excerpt.total,
     tookMs: Math.round(performance.now() - started),
   };
 }

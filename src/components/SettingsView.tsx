@@ -12,6 +12,7 @@ import {
   TriangleAlert,
   Zap,
 } from "lucide-react";
+import { AgentSettingsSection } from "@/components/AgentSettings";
 import { Button } from "@/components/ui/button";
 import { Field } from "@/components/ui/field";
 import { Input } from "@/components/ui/input";
@@ -267,6 +268,8 @@ export function SettingsView({ config, agent, onClose, onSaved }: Props) {
               }
             />
           </Field>
+
+          <AgentSettingsSection agent={agentDraft} base={draft} onChange={setAgentDraft} />
 
           <button
             onClick={() => setAdvanced((v) => !v)}

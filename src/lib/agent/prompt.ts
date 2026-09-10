@@ -53,6 +53,10 @@ export interface PromptInput {
   page: PageIndex;
   /** Every fact extracted so far, oldest first. */
   notes?: string[];
+  /** The plan for this run, when a planner route is configured. */
+  plan?: string[];
+  /** The one thing the plan says will go wrong. */
+  watchOut?: string;
   /** Set when the previous proposal was rejected or invalid, to steer the retry. */
   correction?: string;
   /** Something about this page the model needs to act on before anything else. */
@@ -70,6 +74,9 @@ export function buildMessages(input: PromptInput): Message[] {
     { role: "user", content: `TASK\n${input.task.trim()}` },
   ];
 
+  if (input.plan?.length) {
+    messages.push({ role: "user", content: planBlock(input.plan, input.watchOut) });
+  }
   messages.push({ role: "user", content: historyBlock(input.history) });
   messages.push({ role: "user", content: notesBlock(input.notes ?? []) });
   messages.push({ role: "user", content: stateBlock(input.page, input.notice) });
@@ -79,6 +86,18 @@ export function buildMessages(input: PromptInput): Message[] {
   }
 
   return messages;
+}
+
+/**
+ * The plan sits above history because it does not change, and everything that
+ * does not change belongs in front of everything that does.
+ */
+function planBlock(steps: string[], watchOut?: string): string {
+  return [
+    "PLAN",
+    ...steps.map((s, i) => `${i + 1}. ${s}`),
+    ...(watchOut ? ["", `WATCH OUT: ${watchOut}`] : []),
+  ].join("\n");
 }
 
 /**

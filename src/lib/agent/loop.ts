@@ -2,6 +2,10 @@ import type { Command } from "@/lib/commands";
 import type { PageIndex } from "@/lib/page-index";
 import { ProviderError, type ProviderConfig, type TokenUsage } from "@/lib/provider";
 import { propose, toCommand, type Proposal } from "./index";
+import { makePlan, type PlanResult } from "./planner";
+import { configFor, type Routes } from "./roles";
+import { gate, injectionSpans, DEFAULT_FIREWALL, type Firewall, type Judgement } from "./safety";
+import { validateAnswer } from "./validator";
 import { historyLine, type HistoryEntry } from "./prompt";
 import { isTerminal, type AgentAction } from "./schema";
 
@@ -16,6 +20,14 @@ export type RunStatus =
 export interface AskRequest {
   question: string;
   /** Why the loop believes it cannot proceed alone. */
+  because: string;
+  url: string;
+}
+
+export interface ApprovalRequest {
+  /** Plain description of the action, e.g. `Click button "Place order"`. */
+  what: string;
+  /** Why the gate stopped it. */
   because: string;
   url: string;
 }
@@ -63,6 +75,16 @@ export interface LoopDeps {
    * scoring harness) answers "stop" immediately.
    */
   onAsk: (request: AskRequest) => Promise<AskReply>;
+  /**
+   * Holds an irreversible action until a human agrees to it. Defaults to a
+   * refusal: an unattended run must never be able to spend money by having
+   * nobody there to say no.
+   */
+  onApprove?: (request: ApprovalRequest) => Promise<boolean>;
+  /** Told when a plan is written, so the panel can show it. */
+  onPlan?: (plan: PlanResult, replanned: boolean) => void;
+  /** Told what the validator decided about a `done`. */
+  onVerdict?: (met: boolean, why: string) => void;
   /** Rate-limit waits are long enough that they have to be visible. */
   onWait?: (ms: number, why: string) => void;
   sleep?: (ms: number) => Promise<void>;
@@ -77,6 +99,15 @@ export interface LoopOptions extends LoopDeps {
   maxRateLimitRetries?: number;
   /** Returns why this page needs a human, or null. */
   detectWall?: (page: PageIndex) => string | null;
+  /** Per-role model overrides. Every role falls back to `config`. */
+  routes?: Routes;
+  firewall?: Firewall;
+  /** Write a plan before the first step, and again if the run gets stuck. */
+  plan?: boolean;
+  /** Second-opinion check on `done`. */
+  validate?: boolean;
+  /** Where the run begins, so the plan is not written blind. */
+  startUrl?: string;
 }
 
 const MAX_BACKOFF_MS = 30_000;
@@ -115,6 +146,37 @@ export async function runLoop(opts: LoopOptions): Promise<RunOutcome> {
   let challengedFail = false;
   /** A malformed decode is a provider flake; only a run of them is fatal. */
   let decodeRetries = 0;
+  /** One challenge per false `done`, then the answer is accepted as given. */
+  let challengedDone = false;
+
+  const routes = opts.routes ?? {};
+  const firewall = opts.firewall ?? DEFAULT_FIREWALL;
+  const navigatorConfig = configFor(opts.config, routes, "navigator");
+  const approve = opts.onApprove ?? (async () => false);
+
+  // A box rather than a bare variable: the plan is written inside a closure,
+  // and narrowing a `let` from its initialiser would type every later read as null.
+  const plan: { current: PlanResult | null } = { current: null };
+  let replanned = false;
+
+  const writePlan = async (startUrl: string, trouble?: string) => {
+    if (!opts.plan) return;
+    try {
+      plan.current = await makePlan({
+        config: configFor(opts.config, routes, "planner"),
+        task: opts.task,
+        startUrl,
+        trouble,
+        signal: opts.signal,
+      });
+      usage.prompt += plan.current.usage.prompt;
+      usage.completion += plan.current.usage.completion;
+      opts.onPlan?.(plan.current, Boolean(trouble));
+    } catch {
+      // A plan is an accelerant, never a prerequisite. If the planner endpoint
+      // is down the run still works, it just works less well.
+    }
+  };
 
   const finish = (
     status: RunStatus,
@@ -131,6 +193,54 @@ export async function runLoop(opts: LoopOptions): Promise<RunOutcome> {
     failure,
   });
 
+  /**
+   * Every route to a finished run passes through here.
+   *
+   * Returning null means the answer was challenged and the run continues, so
+   * the check cannot be reached around by whichever branch decided it was done.
+   */
+  const concludeDone = async (answer: string, page: PageIndex, n: number): Promise<RunOutcome | null> => {
+    if (!opts.validate || challengedDone) {
+      opts.onStepEnd(n, "task complete", true);
+      return finish("done", answer);
+    }
+    challengedDone = true;
+
+    try {
+      const check = await validateAnswer({
+        config: configFor(opts.config, routes, "validator"),
+        task: opts.task,
+        answer,
+        pageText: page.text,
+        notes,
+        signal: opts.signal,
+      });
+      usage.prompt += check.usage.prompt;
+      usage.completion += check.usage.completion;
+      opts.onVerdict?.(check.met, check.why);
+
+      if (!check.met) {
+        correction =
+          `That answer was checked and rejected: ${check.why} ` +
+          "Do not finish yet. Go and get what is actually missing.";
+        history.push({ n: history.length + 1, action: "done (rejected)", outcome: check.why });
+        opts.onStepEnd(n, `not accepted: ${check.why}`, false);
+        return null;
+      }
+    } catch {
+      // A validator that cannot be reached must not fail a good run.
+    }
+
+    opts.onStepEnd(n, "task complete", true);
+    return finish("done", answer);
+  };
+
+  await writePlan(opts.startUrl ?? "");
+
+  /** What the page looked like before the last action, to notice a no-op. */
+  let lastPrint = "";
+  let lastDid = "";
+
   for (let n = 1; n <= opts.stepCap; n++) {
     if (opts.signal.aborted) return finish("stopped");
     steps = n;
@@ -145,6 +255,22 @@ export async function runLoop(opts: LoopOptions): Promise<RunOutcome> {
     if (opts.signal.aborted) return finish("stopped");
     opts.onStepStart(n, page);
 
+    // No-op detection. An action that left the URL, the scroll position and the
+    // whole element list untouched did nothing, and the model has no way to
+    // know that — it is shown a page, not a diff. Told plainly, it moves on;
+    // left to infer it, it repeats the same click until the step cap.
+    const print = fingerprint(page);
+    // Never over the top of a correction the last step wrote: that one names a
+    // specific element and is more use than this one's general observation.
+    if (lastDid && print === lastPrint && !correction) {
+      correction =
+        `Your last action (${lastDid}) changed nothing: same URL, same scroll ` +
+        "position, same elements. It did not work. Do something different.";
+    }
+    lastPrint = print;
+
+    const injected = injectionSpans(page);
+
     // Decide, surviving a rate limit rather than dying on it. Free tiers are
     // tight enough that a 429 mid-run is routine, not exceptional.
     let proposal: Proposal | null = null;
@@ -152,11 +278,14 @@ export async function runLoop(opts: LoopOptions): Promise<RunOutcome> {
       if (opts.signal.aborted) return finish("stopped");
       try {
         proposal = await propose({
-          config: opts.config,
+          config: navigatorConfig,
           task: opts.task,
           page,
           history,
           notes,
+          plan: plan.current?.steps,
+          watchOut: plan.current?.watch_out,
+          injected,
           correction,
           signal: opts.signal,
         });
@@ -208,8 +337,9 @@ export async function runLoop(opts: LoopOptions): Promise<RunOutcome> {
         // A model that keeps trying to finish without writing the answer down
         // has still done the work; the notes are that answer.
         if (isTerminal(proposal.action) && notes.length > 0) {
-          opts.onStepEnd(n, "answering from NOTES", true);
-          return finish("done", notes.join(" "));
+          const out = await concludeDone(notes.join(" "), page, n);
+          if (out) return out;
+          continue;
         }
         opts.onStepEnd(n, proposal.problem, false);
         return finish("failed", "", proposal.problem, "invalid_index");
@@ -227,21 +357,49 @@ export async function runLoop(opts: LoopOptions): Promise<RunOutcome> {
     correction = undefined;
     const { action } = proposal;
 
+    // The safety gate. Every action passes through here before anything else
+    // looks at it, so no later branch can route around it.
+    const verdict: Judgement = gate({ action, page, firewall, injected });
+    if (verdict.severity === "refuse") {
+      correction = `${verdict.what} was refused. ${verdict.because} Do something else.`;
+      opts.onStepEnd(n, `refused: ${verdict.because}`, false);
+      history.push(historyLine(history.length + 1, action, `refused: ${verdict.because}`));
+      continue;
+    }
+    if (verdict.severity === "confirm") {
+      const allowed = await approve({ what: verdict.what, because: verdict.because, url: page.url });
+      if (!allowed) {
+        correction =
+          `The user did not approve: ${verdict.what}. Do not try it again. ` +
+          "Finish with what you have, or tell them what is left to do.";
+        opts.onStepEnd(n, `not approved: ${verdict.what}`, false);
+        history.push(historyLine(history.length + 1, action, "user did not approve"));
+        continue;
+      }
+      opts.onStepEnd(n, `approved: ${verdict.what}`, true);
+    }
+
     // Ask before acting, so a wall the agent cannot pass is handed over rather
     // than hammered at until the step cap.
     const wall = opts.detectWall?.(page) ?? null;
     const signature =
       `${page.url}|${page.viewport.scrollY}|${action.action}` +
       `|${action.index ?? ""}|${action.value ?? ""}`;
-    recent.push(signature);
-    if (recent.length > 6) recent.shift();
-    const repeats = recent.filter((r) => r === signature).length;
+    // Only actions that touch the page take part in loop detection. Repeating
+    // `done` or `extract` is a different problem with its own handling below,
+    // and counting it here hands the run over instead of answering it.
+    const actuates = toCommand(action) !== null;
+    if (actuates) {
+      recent.push(signature);
+      if (recent.length > 6) recent.shift();
+    }
+    const repeats = actuates ? recent.filter((r) => r === signature).length : 0;
 
     // Two identical choices means the element did nothing — a close button that
     // is not one, usually. Naming it and forbidding it recovers far more runs
     // than handing over does, so the nudge comes first and the handover only
     // if it does not take.
-    if (repeats === 2 && !wall && action.action !== "ask" && nudgedFor !== signature) {
+    if (repeats === 2 && !wall && nudgedFor !== signature) {
       nudgedFor = signature;
       correction =
         `${describeChoice(action)} did nothing — the page is unchanged. ` +
@@ -253,9 +411,21 @@ export async function runLoop(opts: LoopOptions): Promise<RunOutcome> {
 
     const stuck = repeats >= 3;
 
-    // `extract` is exempt: repeating it has its own handling below, which ends
-    // with the answer in hand rather than handing the task over.
+    // `stuck` can only be true for an action that touches the page, so the
+    // exemptions here are about `wall`: asking is the right move on a sign-in
+    // page, and an extraction is answered below rather than handed over.
     const handOff = (wall || stuck) && action.action !== "ask" && action.action !== "extract";
+
+    // A stuck run is exactly what a planner is for: the navigator has proved it
+    // cannot see a way through from where it is standing. One re-plan, then the
+    // human.
+    if (stuck && !wall && opts.plan && !replanned) {
+      replanned = true;
+      recent.length = 0;
+      await writePlan(page.url, `The agent repeated "${describeChoice(action)}" on ${page.url} and got nowhere.`);
+      opts.onStepEnd(n, "stuck — replanned", true);
+      continue;
+    }
 
     if (handOff && handedOffFor !== signature) {
       handedOffFor = signature;
@@ -329,13 +499,13 @@ export async function runLoop(opts: LoopOptions): Promise<RunOutcome> {
       // A run that gathered facts and then said nothing should still hand them
       // over; the notes are the work, and discarding them helps nobody.
       const answer = action.value?.trim() || notes.join(" ");
-      opts.onStepEnd(n, action.action === "done" ? "task complete" : `gave up: ${answer}`, action.action === "done");
-      return finish(
-        action.action === "done" ? "done" : "failed",
-        answer,
-        undefined,
-        action.action === "done" ? undefined : "agent_gave_up",
-      );
+      if (action.action === "fail") {
+        opts.onStepEnd(n, `gave up: ${answer}`, false);
+        return finish("failed", answer, undefined, "agent_gave_up");
+      }
+      const out = await concludeDone(answer, page, n);
+      if (out) return out;
+      continue;
     }
 
     if (action.action === "extract") {
@@ -355,8 +525,9 @@ export async function runLoop(opts: LoopOptions): Promise<RunOutcome> {
       // insists is the collected set the best thing to return.
       if (notes.some((note) => squash(note) === squash(answer))) {
         if (extractRepeats >= 1) {
-          opts.onStepEnd(n, "nothing new to extract — answering from NOTES", true);
-          return finish("done", notes.join(" "));
+          const out = await concludeDone(notes.join(" "), page, n);
+          if (out) return out;
+          continue;
         }
         extractRepeats++;
         correction =
@@ -390,6 +561,7 @@ export async function runLoop(opts: LoopOptions): Promise<RunOutcome> {
     }
 
     history.push(historyLine(history.length + 1, action, result.summary));
+    lastDid = describeChoice(action).toLowerCase();
     opts.onStepEnd(n, result.summary, result.ok);
 
     if (opts.signal.aborted) return finish("stopped");
@@ -424,6 +596,20 @@ function failureFor(err: ProviderError): string {
     case "http": return "provider_error";
     default: return "unknown";
   }
+}
+
+/**
+ * What a page looks like, for telling "nothing happened" from "something did".
+ *
+ * Labels rather than a count: a search that replaces ten results with ten
+ * different ones has the same length and a completely different page.
+ */
+function fingerprint(page: PageIndex): string {
+  return [
+    page.url,
+    page.viewport.scrollY,
+    page.elements.map((e) => `${e.role}:${e.label}`).join("|"),
+  ].join("~");
 }
 
 /** Names the action that did nothing, in the model's own vocabulary. */

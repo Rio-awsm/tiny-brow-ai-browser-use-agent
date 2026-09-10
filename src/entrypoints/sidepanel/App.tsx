@@ -29,6 +29,7 @@ import {
 } from "@/lib/agent";
 import {
   runLoop,
+  type ApprovalRequest,
   type AskReply,
   type AskRequest,
   type ExecuteResult,
@@ -79,7 +80,7 @@ const TOOL_MESSAGE: Record<ToolId, PanelMessage> = {
 export function App() {
   const {
     task, running, tab, cdp, events,
-    setTask, setRunning, setTab, setCdp, note, push, patchStep, answerAsk,
+    setTask, setRunning, setTab, setCdp, note, push, patchStep, answerAsk, answerApproval,
     resolveProposal, clear,
   } = usePanel();
   const [busyTool, setBusyTool] = useState<ToolId | null>(null);
@@ -99,6 +100,7 @@ export function App() {
   // Resolved by the AskCard's buttons. The loop is just awaiting this promise,
   // so a paused run needs no state machine.
   const askResolver = useRef<((reply: AskReply) => void) | null>(null);
+  const approvalResolver = useRef<((allowed: boolean) => void) | null>(null);
   const [bench, setBench] = useState<BenchState>({
     on: false,
     connected: false,
@@ -315,6 +317,7 @@ export function App() {
     // A run paused on a question is not inside the loop's abort checks, so the
     // pending promise has to be released or Stop would do nothing.
     askResolver.current?.({ action: "stop", note: "" });
+    approvalResolver.current?.(false);
     // Two halves: the panel-side loop stops between steps, and the background
     // aborts whatever action or request is already in flight.
     runAbort.current?.abort();
@@ -352,6 +355,37 @@ export function App() {
 
   const answerAskRequest = (_id: number, reply: AskReply) => {
     askResolver.current?.(reply);
+  };
+
+  /**
+   * Holds the run until you decide.
+   *
+   * Refuses outright when nobody is watching — a scored run has no human to
+   * click Allow, and defaulting the other way would mean the benchmark could
+   * place an order.
+   */
+  const askApproval = (request: ApprovalRequest, unattended: boolean): Promise<boolean> => {
+    if (unattended) {
+      push({ kind: "approval", request, answer: false });
+      return Promise.resolve(false);
+    }
+
+    push({ kind: "approval", request, answer: null });
+    const id = usePanel.getState().events.at(-1)?.id ?? null;
+    setRunning(false);
+
+    return new Promise<boolean>((resolve) => {
+      approvalResolver.current = (allowed) => {
+        approvalResolver.current = null;
+        if (id !== null) answerApproval(id, allowed);
+        setRunning(true);
+        resolve(allowed);
+      };
+    });
+  };
+
+  const answerApprovalRequest = (_id: number, allowed: boolean) => {
+    approvalResolver.current?.(allowed);
   };
 
   /** Runs one action through the actuation layer and reports it back to the loop. */
@@ -501,6 +535,20 @@ export function App() {
         execute: (command) => executeCommand(command, !override),
         detectWall: detectAuthWall,
         onAsk: (request) => askUser(request, Boolean(override)),
+        onApprove: (request) => askApproval(request, Boolean(override)),
+        routes: agent.routes,
+        firewall: agent.firewall,
+        plan: agent.plan,
+        validate: agent.validate,
+        startUrl: override?.startUrl ?? current?.url ?? "",
+        onPlan: (made, replannedNow) =>
+          push({
+            kind: "plan",
+            steps: made.steps,
+            watchOut: made.watch_out,
+            replanned: replannedNow,
+          }),
+        onVerdict: (met, why) => push({ kind: "verdict", met, why }),
         onStepStart: (n, page) => {
           lastUrl = page.url;
           collected.push({
@@ -754,6 +802,7 @@ export function App() {
           onExecute={(id) => void executeProposal(id)}
           onReject={(id) => void rejectProposal(id)}
           onAnswerAsk={answerAskRequest}
+          onAnswerApproval={answerApprovalRequest}
         />
         <Composer
           task={task}
