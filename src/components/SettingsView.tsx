@@ -13,6 +13,8 @@ import {
   Zap,
 } from "lucide-react";
 import { AgentSettingsSection } from "@/components/AgentSettings";
+import { SwitchRow } from "@/components/ui/switch";
+import { DEFAULT_BRIDGE } from "@/lib/bench";
 import { Button } from "@/components/ui/button";
 import { Field } from "@/components/ui/field";
 import { Input } from "@/components/ui/input";
@@ -39,9 +41,12 @@ interface Props {
   agent: AgentSettings;
   onClose: () => void;
   onSaved: (config: ProviderConfig, agent: AgentSettings) => void;
+  /** The scoring harness connection — a developer control, not a browsing one. */
+  benchOn: boolean;
+  onToggleBench: () => void;
 }
 
-export function SettingsView({ config, agent, onClose, onSaved }: Props) {
+export function SettingsView({ config, agent, onClose, onSaved, benchOn, onToggleBench }: Props) {
   const [draft, setDraft] = useState<ProviderConfig>(config);
   const [agentDraft, setAgentDraft] = useState<AgentSettings>(agent);
   const [showKey, setShowKey] = useState(false);
@@ -270,6 +275,15 @@ export function SettingsView({ config, agent, onClose, onSaved }: Props) {
           </Field>
 
           <AgentSettingsSection agent={agentDraft} base={draft} onChange={setAgentDraft} />
+
+          <div className="rounded-lg border border-border bg-card p-2.5">
+            <SwitchRow
+              label="Connect to the scoring harness"
+              hint={`Polls ${DEFAULT_BRIDGE} for tasks and runs them unattended. Only needed to score the suite.`}
+              checked={benchOn}
+              onCheckedChange={onToggleBench}
+            />
+          </div>
 
           <button
             onClick={() => setAdvanced((v) => !v)}

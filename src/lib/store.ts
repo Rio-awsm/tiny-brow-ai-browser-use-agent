@@ -1,5 +1,5 @@
 import { create } from "zustand";
-import type { CdpStatus, Screenshot } from "./cdp-types";
+import type { CdpStatus } from "./cdp-types";
 import type { TabInfo } from "./messaging";
 import type { PageIndex } from "./page-index";
 import type { ActionResult } from "@/entrypoints/background/actions";
@@ -17,7 +17,6 @@ interface Base {
 export type PanelEvent =
   | (Base & { kind: "note"; level: NoteLevel; text: string })
   | (Base & { kind: "task"; text: string })
-  | (Base & { kind: "shot"; shot: Screenshot })
   | (Base & { kind: "index"; index: PageIndex })
   | (Base & { kind: "command"; input: string })
   | (Base & { kind: "action"; result: ActionResult })

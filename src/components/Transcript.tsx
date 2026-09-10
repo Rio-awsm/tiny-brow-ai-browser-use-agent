@@ -5,14 +5,11 @@ import {
   ChevronDown,
   Info,
   Layers,
-  Maximize2,
   MousePointer2,
   Terminal,
   TriangleAlert,
-  X,
 } from "lucide-react";
 import { Logo } from "@/components/Logo";
-import { Button } from "@/components/ui/button";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { cn } from "@/lib/utils";
 import {
@@ -22,7 +19,6 @@ import {
   type PageIndex,
 } from "@/lib/page-index";
 import type { NoteLevel, PanelEvent } from "@/lib/store";
-import type { Screenshot } from "@/lib/cdp-types";
 import type { ActionResult } from "@/entrypoints/background/actions";
 import { ProposalCard } from "@/components/ProposalCard";
 import { AskCard } from "@/components/AskCard";
@@ -55,7 +51,6 @@ export function Transcript({
   onAnswerApproval,
 }: TranscriptProps) {
   const endRef = useRef<HTMLDivElement>(null);
-  const [zoom, setZoom] = useState<Screenshot | null>(null);
 
   useEffect(() => {
     endRef.current?.scrollIntoView({ behavior: "smooth", block: "end" });
@@ -73,8 +68,6 @@ export function Transcript({
                 return <TaskBubble key={e.id} text={e.text} />;
               case "note":
                 return <Note key={e.id} level={e.level} text={e.text} at={e.at} />;
-              case "shot":
-                return <ShotCard key={e.id} shot={e.shot} onZoom={() => setZoom(e.shot)} />;
               case "index":
                 return <IndexCard key={e.id} index={e.index} />;
               case "command":
@@ -128,25 +121,6 @@ export function Transcript({
         </div>
       </ScrollArea>
 
-      {zoom && (
-        <div
-          className="fixed inset-0 z-50 flex flex-col bg-background/95 backdrop-blur animate-in fade-in-0"
-          onClick={() => setZoom(null)}
-        >
-          <div className="flex justify-end p-2">
-            <Button variant="ghost" size="icon" onClick={() => setZoom(null)}>
-              <X />
-            </Button>
-          </div>
-          <div className="flex-1 overflow-auto px-2 pb-2">
-            <img
-              src={zoom.dataUrl}
-              alt="Captured page, enlarged"
-              className="w-full rounded-lg border border-border"
-            />
-          </div>
-        </div>
-      )}
     </>
   );
 }
@@ -226,29 +200,6 @@ function Note({ level, text, at }: { level: NoteLevel; text: string; at: number 
         {new Date(at).toLocaleTimeString(undefined, { hour12: false })}
       </time>
     </div>
-  );
-}
-
-function ShotCard({ shot, onZoom }: { shot: Screenshot; onZoom: () => void }) {
-  return (
-    <figure className="overflow-hidden rounded-xl border border-border bg-card">
-      <button
-        onClick={onZoom}
-        className="group relative block w-full transition-opacity hover:opacity-95"
-      >
-        <img src={shot.dataUrl} alt="Captured page" className="block w-full" />
-        <span className="absolute right-2 top-2 flex size-6 items-center justify-center rounded-md bg-background/85 text-muted-foreground opacity-0 backdrop-blur transition-opacity group-hover:opacity-100">
-          <Maximize2 className="size-3" />
-        </span>
-      </button>
-      <figcaption className="flex items-center gap-2 border-t border-border px-2.5 py-1.5 font-mono text-[9px] tabular-nums text-muted-foreground">
-        <span>
-          {shot.width}×{shot.height}
-        </span>
-        <span>{(shot.bytes / 1024).toFixed(0)} kB</span>
-        <span className="ml-auto">{shot.tookMs} ms</span>
-      </figcaption>
-    </figure>
   );
 }
 

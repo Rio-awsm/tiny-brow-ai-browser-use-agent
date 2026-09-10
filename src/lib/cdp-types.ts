@@ -17,16 +17,6 @@ export interface CdpStatus {
   attachedAt?: number;
 }
 
-export interface Screenshot {
-  dataUrl: string;
-  width: number;
-  height: number;
-  bytes: number;
-  capturedAt: number;
-  /** Milliseconds from attach (or reuse) to image in hand. */
-  tookMs: number;
-}
-
 /** Scheme -> how to write it in a message. `about:` and `view-source:` are not
  *  hierarchical, so "about://" would be wrong. */
 const RESTRICTED_SCHEMES: Record<string, string> = {

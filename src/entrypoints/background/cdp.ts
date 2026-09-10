@@ -1,7 +1,6 @@
 import {
   restrictionFor,
   type CdpStatus,
-  type Screenshot,
 } from "@/lib/cdp-types";
 
 const PROTOCOL_VERSION = "1.3";
@@ -240,48 +239,6 @@ export async function send<T = unknown>(
   }
 }
 
-interface LayoutMetrics {
-  cssVisualViewport?: { clientWidth: number; clientHeight: number };
-  cssLayoutViewport?: { clientWidth: number; clientHeight: number };
-}
-
-export async function screenshot(tabId: number, url: string): Promise<Screenshot> {
-  const started = performance.now();
-  const alreadyOpen = await chromeSaysAttached(tabId);
-
-  await attach(tabId, url, false);
-
-  try {
-    const metrics = await send<LayoutMetrics>(tabId, "Page.getLayoutMetrics");
-    const viewport = metrics.cssVisualViewport ?? metrics.cssLayoutViewport;
-
-    const { data } = await send<{ data: string }>(tabId, "Page.captureScreenshot", {
-      format: "jpeg",
-      quality: 72,
-      captureBeyondViewport: false,
-    });
-
-    return {
-      dataUrl: `data:image/jpeg;base64,${data}`,
-      width: Math.round(viewport?.clientWidth ?? 0),
-      height: Math.round(viewport?.clientHeight ?? 0),
-      bytes: Math.round((data.length * 3) / 4),
-      capturedAt: Date.now(),
-      tookMs: Math.round(performance.now() - started),
-    };
-  } finally {
-    // A capture that opened its own session closes it again, so a one-shot
-    // never leaves the debugging banner up.
-    if (!alreadyOpen) {
-      const sessions = await load();
-      if (!sessions.get(tabId)?.pinned) {
-        await detach(tabId).catch((err) =>
-          console.warn("[tiny-brow cdp] cleanup detach failed", message(err)),
-        );
-      }
-    }
-  }
-}
 
 /** Turns Chrome's generic attach errors into something actionable. */
 function explainAttachFailure(err: unknown): string {

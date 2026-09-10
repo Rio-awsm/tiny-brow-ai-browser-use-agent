@@ -2,15 +2,12 @@ import { useState } from "react";
 import {
   ArrowUp,
   Bot,
-  FlaskConical,
-  Camera,
   ChevronUp,
   Layers,
   Link2,
   Link2Off,
   Loader2,
   MousePointer2,
-  MousePointerClick,
   ScanEye,
   Square,
   Terminal,
@@ -27,14 +24,11 @@ import type { CdpStatus } from "@/lib/cdp-types";
 export type ToolId =
   | "attach"
   | "detach"
-  | "capture"
   | "index"
   | "overlay"
   | "cursor"
-  | "bench"
   | "ping"
-  | "tab"
-  | "page";
+  | "tab";
 
 interface Props {
   task: string;
@@ -124,15 +118,6 @@ export function Composer({
             onTool={onTool}
           />
           <Tool
-            id="capture"
-            label="Shot"
-            icon={Camera}
-            tip="Screenshot the viewport over CDP"
-            disabled={restricted}
-            busyTool={busyTool}
-            onTool={onTool}
-          />
-          <Tool
             id="cursor"
             label="Cursor"
             icon={MousePointer2}
@@ -151,22 +136,6 @@ export function Composer({
             label="Ping"
             icon={Zap}
             tip="Round-trip a message through the background worker"
-            busyTool={busyTool}
-            onTool={onTool}
-          />
-          <Tool
-            id="bench"
-            label="Bench"
-            icon={FlaskConical}
-            tip="Connect to the scoring harness running on 127.0.0.1:8787"
-            busyTool={busyTool}
-            onTool={onTool}
-          />
-          <Tool
-            id="page"
-            label="Probe"
-            icon={MousePointerClick}
-            tip="Ask the content script what it can see"
             busyTool={busyTool}
             onTool={onTool}
           />

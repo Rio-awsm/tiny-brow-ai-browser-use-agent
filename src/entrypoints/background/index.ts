@@ -17,7 +17,6 @@ import {
 import * as cursor from "./cursor";
 import {
   isPanelMessage,
-  type ContentMessage,
   type PanelMessage,
   type PanelReply,
   type TabInfo,
@@ -103,14 +102,6 @@ async function handle(msg: PanelMessage): Promise<PanelReply> {
 
     case "activeTab":
       return { ok: true, kind: "activeTab", tab: await activeTab() };
-
-    case "probePage": {
-      const tab = await requireTarget();
-      const probe = await chrome.tabs.sendMessage(tab.id, {
-        kind: "probePage",
-      } satisfies ContentMessage);
-      return { ok: true, kind: "probePage", probe };
-    }
 
     case "cdpStatus": {
       const tab = await activeTab();
@@ -252,17 +243,6 @@ async function handle(msg: PanelMessage): Promise<PanelReply> {
         // close and take Chrome's banner with it.
         if (!wasAttached) await cdp.detach(tab.id).catch(() => {});
       }
-    }
-
-    case "cdpScreenshot": {
-      const tab = await requireTarget();
-      const shot = await cdp.screenshot(tab.id, tab.url);
-      return {
-        ok: true,
-        kind: "cdpScreenshot",
-        status: await cdp.status(tab.id, tab.url),
-        shot,
-      };
     }
   }
 }

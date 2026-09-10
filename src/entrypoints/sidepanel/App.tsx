@@ -67,14 +67,11 @@ function failureFor(status: string): string | undefined {
 const TOOL_MESSAGE: Record<ToolId, PanelMessage> = {
   attach: { kind: "cdpAttach" },
   detach: { kind: "cdpDetach" },
-  capture: { kind: "cdpScreenshot" },
   index: { kind: "buildIndex" },
   overlay: { kind: "overlay", on: true },
   cursor: { kind: "cursor", on: true },
-  bench: { kind: "ping", sentAt: 0 },
   ping: { kind: "ping", sentAt: 0 },
   tab: { kind: "activeTab" },
-  page: { kind: "probePage" },
 };
 
 export function App() {
@@ -177,23 +174,30 @@ export function App() {
     };
   }, [refresh]);
 
-  const runTool = async (tool: ToolId) => {
-    if (tool === "bench") {
-      if (bench.on) {
-        setBench((b) => ({ ...b, on: false, current: null, lastError: null }));
-        return;
-      }
-      // This click is the user gesture Chrome requires for a permission request.
-      const granted =
-        (await hasHostPermission(DEFAULT_BRIDGE)) ||
-        (await requestHostPermission(DEFAULT_BRIDGE));
-      if (!granted) {
-        note("error", `Benchmark needs permission to reach ${DEFAULT_BRIDGE}`);
-        return;
-      }
-      setBench((b) => ({ ...b, on: true, current: null, lastError: null }));
+  /**
+   * Connects the panel to the scoring harness.
+   *
+   * Lives in settings rather than the toolbar: it is how the suite is run, not
+   * something anyone using Tiny to browse ever needs, and the toolbar is the
+   * product surface.
+   */
+  const toggleBench = async () => {
+    if (bench.on) {
+      setBench((b) => ({ ...b, on: false, current: null, lastError: null }));
       return;
     }
+    // This click is the user gesture Chrome requires for a permission request.
+    const granted =
+      (await hasHostPermission(DEFAULT_BRIDGE)) ||
+      (await requestHostPermission(DEFAULT_BRIDGE));
+    if (!granted) {
+      note("error", `The harness needs permission to reach ${DEFAULT_BRIDGE}`);
+      return;
+    }
+    setBench((b) => ({ ...b, on: true, current: null, lastError: null }));
+  };
+
+  const runTool = async (tool: ToolId) => {
     setBusyTool(tool);
     const msg =
       tool === "ping"
@@ -222,19 +226,9 @@ export function App() {
         setTab(reply.tab);
         note("recv", reply.tab ? `tab ${reply.tab.id} · ${reply.tab.url}` : "no active tab");
         break;
-      case "probePage":
-        note(
-          "recv",
-          `${reply.probe.readyState} · ${reply.probe.elementCount} nodes · ${reply.probe.title}`,
-        );
-        break;
       case "cdpStatus":
         setCdp(reply.status);
         note("recv", `debugger ${reply.status.state}`);
-        break;
-      case "cdpScreenshot":
-        setCdp(reply.status);
-        push({ kind: "shot", shot: reply.shot });
         break;
       case "command":
         push({ kind: "action", result: reply.result });
@@ -769,6 +763,8 @@ export function App() {
         <SettingsView
           config={provider}
           agent={agent}
+          benchOn={bench.on}
+          onToggleBench={() => void toggleBench()}
           onClose={() => setSettingsOpen(false)}
           onSaved={(next, nextAgent) => {
             setProvider(next);

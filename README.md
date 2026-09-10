@@ -44,16 +44,8 @@ npm install
 npm run dev        # launches a dev-profile Chrome with the extension loaded
 ```
 
-Click the tiny-brow toolbar icon to open the side panel. Three probe buttons at the
-bottom exercise the messaging paths the agent will use:
-
-| Probe | Path |
-|---|---|
-| **Ping** | panel → background → panel, with the round-trip time |
-| **Tab** | panel → background → `chrome.tabs`, refreshes the header |
-| **Page** | panel → background → content script → back |
-
-**Tools** under the composer opens the debug drawer:
+Click the tiny-brow toolbar icon to open the side panel. **Tools** under the composer
+opens the drawer:
 
 | Tool | What it does |
 |---|---|
@@ -61,11 +53,15 @@ bottom exercise the messaging paths the agent will use:
 | **Index** | Builds the numbered element index the model will act on |
 | **Overlay** | Re-indexes, then draws numbered boxes over every element on the page |
 | **Cursor** | Toggles the animated cursor. On by default, remembered across sessions |
-| **Shot** | `Page.captureScreenshot`. Attaches first if needed, then detaches, so a one-shot never leaves the banner up |
-| **Ping** / **Probe** | Message round trips through the background worker and content script |
+| **Ping** | Round-trips a message through the background worker |
+| **Tab** | Asks `chrome.tabs` what is in front, and refreshes the header |
 
-Results land in the transcript. Click a capture to enlarge it, or an index to
-expand the exact text that will reach the model.
+Results land in the transcript; click an index to expand the exact text that will reach
+the model.
+
+**Tiny injects nothing into the pages you visit.** There is no content script and no
+`content_scripts` entry in the manifest — everything that runs in a page goes through a
+CDP session you can see, on a tab you pointed it at, and stops when the session closes.
 
 To load a production build manually instead: `npm run build`, then
 `chrome://extensions` → Developer mode → Load unpacked → `.output/chrome-mv3`.
@@ -602,9 +598,9 @@ Two things make it correct rather than approximately correct:
 every scroll and resize, rather than being frozen at the coordinates the index
 recorded. Sticky headers, modals and nested scrollers therefore work by construction.
 That is only possible because the overlay is drawn in the **page's main world**,
-where the indexer left its element references — a content script is in an isolated
-world and cannot see them. The guide suggests drawing from the content script; this
-is the one deviation, and re-measurement is the reason.
+where the indexer left its element references — an isolated world cannot see them.
+The guide suggests drawing from a content script; this is the one deviation, and
+re-measurement is the reason. It also means Tiny needs no content script at all.
 
 **It cannot index itself.** The host carries `data-tiny-brow` and holds its boxes in
 a *closed* shadow root, so the indexer's `el.shadowRoot` check reads `null` and never
@@ -670,7 +666,8 @@ Every run prints the backend it resolved before it starts, so a lost flag is vis
 immediately rather than at the end of a scored suite. Passing them through npm now
 explains the problem and prints the working command instead of crashing.
 
-Then in the browser: open the side panel, **Tools → Bench**. It asks once for
+Then in the browser: open the side panel, **Settings → Connect to the scoring
+harness**. It asks once for
 permission to reach `127.0.0.1:8787`, connects, and starts taking work.
 
 The harness sends the backend with each task, so `--provider` actually switches what
@@ -799,13 +796,12 @@ Keys are sent only to the endpoint you configure, and nowhere else.
 src/
   entrypoints/
     background/       service worker: message relay
-      cdp.ts          the CDP session: attach, detach, screenshot, lifecycle
+      cdp.ts          the CDP session: attach, detach, lifecycle
       extract.ts      the injected page indexer
       overlay.ts      the injected highlight overlay
       actions.ts      click, type, key, scroll, navigate over CDP Input
       cursor.ts       the injected animated cursor
       settle.ts       the waiting layer: network quiet, then DOM stability
-    content/          injected into every page; probes and, later, overlays
     sidepanel/        the React panel — where the agent loop runs
   components/         panel UI: header, transcript, composer, logo, cards
     ui/               shadcn-style primitives

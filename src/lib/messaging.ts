@@ -1,4 +1,4 @@
-import type { CdpStatus, Screenshot } from "./cdp-types";
+import type { CdpStatus } from "./cdp-types";
 import type { Command } from "./commands";
 import type { PageIndex } from "./page-index";
 import type { ActionResult } from "@/entrypoints/background/actions";
@@ -7,13 +7,6 @@ export interface TabInfo {
   id: number;
   url: string;
   title: string;
-}
-
-export interface PageProbe {
-  url: string;
-  title: string;
-  readyState: string;
-  elementCount: number;
 }
 
 /**
@@ -26,11 +19,9 @@ export type PanelMessage = PanelMessageBody & { tabId?: number };
 type PanelMessageBody =
   | { kind: "ping"; sentAt: number }
   | { kind: "activeTab" }
-  | { kind: "probePage" }
   | { kind: "cdpStatus" }
   | { kind: "cdpAttach" }
   | { kind: "cdpDetach" }
-  | { kind: "cdpScreenshot" }
   | { kind: "buildIndex" }
   | { kind: "overlay"; on: boolean }
   | { kind: "command"; command: Command; cursor: boolean }
@@ -39,14 +30,10 @@ type PanelMessageBody =
   | { kind: "runEnd" }
   | { kind: "abort" };
 
-export type ContentMessage = { kind: "probePage" };
-
 export type PanelReply =
   | { ok: true; kind: "pong"; sentAt: number; receivedAt: number }
   | { ok: true; kind: "activeTab"; tab: TabInfo | null }
-  | { ok: true; kind: "probePage"; probe: PageProbe }
   | { ok: true; kind: "cdpStatus"; status: CdpStatus }
-  | { ok: true; kind: "cdpScreenshot"; status: CdpStatus; shot: Screenshot }
   | { ok: true; kind: "buildIndex"; status: CdpStatus; index: PageIndex }
   | { ok: true; kind: "overlay"; on: boolean; count: number; index?: PageIndex }
   | {
@@ -63,19 +50,15 @@ export type PanelReply =
   | { ok: true; kind: "abort"; stopped: boolean }
   | { ok: false; error: string };
 
-export const CONTENT_READY = "tiny-brow:content-ready";
-
 /** Long-lived port the panel holds open, so the background sees it close. */
 export const PANEL_PORT = "tiny-brow:panel";
 
 const PANEL_KINDS: PanelMessageBody["kind"][] = [
   "ping",
   "activeTab",
-  "probePage",
   "cdpStatus",
   "cdpAttach",
   "cdpDetach",
-  "cdpScreenshot",
   "buildIndex",
   "overlay",
   "command",
