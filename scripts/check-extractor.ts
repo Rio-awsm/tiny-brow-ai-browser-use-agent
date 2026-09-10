@@ -1,11 +1,12 @@
 /**
- * The page indexer is injected by stringifying a function and evaluating it in
- * the page, so it must be completely self-contained. A bundler is free to hoist
- * an inner helper to module scope, and the result still builds, still typechecks,
- * and then throws `ReferenceError` inside every page it touches.
+ * Everything Tiny runs inside a page is delivered by stringifying a function
+ * and evaluating it there, so each one must be completely self-contained. A
+ * bundler is free to hoist an inner helper to module scope, and the result
+ * still builds, still typechecks, and then throws `ReferenceError` in every
+ * page it touches.
  *
- * This extracts the real function out of the built bundle and runs it against a
- * stub DOM. Requires `npm run build` first.
+ * This finds every injected function in the built bundle, pulls it back out,
+ * and runs it against a stub DOM. Requires `npm run build` first.
  *
  *   npm run check:extractor
  */
@@ -22,45 +23,43 @@ if (!existsSync(BUNDLE)) {
 
 const src = readFileSync(BUNDLE, "utf8");
 
-// The call site is `expression: \`(${NAME.toString()})(40, 4000)\``.
-const call = /\(\$\{(\w+)\.toString\(\)\}\)/.exec(src);
-if (!call) {
-  console.error("\n  could not find the injected-extractor call site in the bundle\n");
-  process.exit(1);
-}
-const name = call[1]!;
+// Every injection is written as `(${NAME.toString()})(...)` at its call site.
+const names = [...new Set([...src.matchAll(/\(\$\{(\w+)\.toString\(\)\}\)/g)].map((m) => m[1]!))];
 
-const source = extractFunction(src, name);
-if (!source) {
-  console.error(`\n  could not find \`function ${name}(\` in the bundle\n`);
+if (names.length === 0) {
+  console.error("\n  found no injected functions in the bundle — did the call-site shape change?\n");
   process.exit(1);
 }
 
-let result: ExtractorResult;
-try {
-  result = runAgainstStubDom(source);
-} catch (err) {
-  const text = err instanceof Error ? err.message : String(err);
-  console.error(`\n  INJECTED EXTRACTOR IS NOT SELF-CONTAINED\n\n    ${text}\n`);
-  if (/is not defined/.test(text)) {
-    console.error(
-      "  The bundler hoisted something out of the function, so the injected\n" +
-        "  source references an identifier no page will have. Move it back inside\n" +
-        "  the function body.\n",
-    );
+let failed = false;
+
+for (const name of names) {
+  const source = extractFunction(src, name);
+  if (!source) {
+    console.error(`\n  could not find \`function ${name}(\` in the bundle\n`);
+    failed = true;
+    continue;
   }
-  process.exit(1);
+
+  try {
+    invoke(source);
+    console.log(`  ok — ${name} is self-contained (${source.length} bytes)`);
+  } catch (err) {
+    const text = err instanceof Error ? err.message : String(err);
+    console.error(`\n  ${name} IS NOT SELF-CONTAINED\n\n    ${text}\n`);
+    if (/is not defined/.test(text)) {
+      console.error(
+        "  The bundler hoisted something out of the function, so the injected\n" +
+          "  source references an identifier no page will have. Move it back inside\n" +
+          "  the function body.\n",
+      );
+    }
+    failed = true;
+  }
 }
 
-if (result.elements.length !== 0 || result.totalFound !== 0) {
-  console.error("\n  stub DOM has no elements but the extractor found some\n");
-  process.exit(1);
-}
-
-console.log(
-  `\n  ok — injected extractor is self-contained ` +
-    `(${name}, ${source.length} bytes, ran clean on a stub DOM)\n`,
-);
+if (failed) process.exit(1);
+console.log(`\n  ${names.length} injected functions verified\n`);
 
 /** Brace-matches a function declaration out of the bundle. */
 function extractFunction(bundle: string, fnName: string): string | null {
@@ -82,42 +81,89 @@ function extractFunction(bundle: string, fnName: string): string | null {
   return null;
 }
 
-interface ExtractorResult {
-  elements: unknown[];
-  totalFound: number;
+/**
+ * Runs the function with page globals only. The stub is deliberately rich
+ * enough for the overlay to walk its whole path — an early return would exit
+ * before reaching the helpers this check exists to catch.
+ */
+function invoke(source: string): void {
+  const stub = makeStubDom();
+  const keys = Object.keys(stub);
+  const factory = new Function(...keys, `return (${source});`);
+  const fn = factory(...keys.map((k) => stub[k])) as (...args: unknown[]) => unknown;
+  // The indexer takes (indexCap, textCap); the overlay functions ignore args.
+  fn(40, 4000);
 }
 
-/**
- * Just enough DOM for the extractor to run to completion on an empty page.
- * Any reference it makes to a hoisted helper throws here instead of in a user's
- * browser.
- */
-function runAgainstStubDom(source: string): ExtractorResult {
-  const emptyWalker = { nextNode: () => null };
+function makeStubDom(): Record<string, unknown> {
+  const rect = { left: 10, top: 20, width: 100, height: 30, right: 110, bottom: 50 };
 
-  const documentElement = { scrollHeight: 2000 };
-  const body = { innerText: "" };
+  function makeEl(tag = "div"): any {
+    const el: any = {
+      tagName: tag.toUpperCase(),
+      children: [],
+      shadowRoot: null,
+      dataset: {},
+      className: "",
+      style: { cssText: "", setProperty() {} },
+      textContent: "",
+      innerText: "",
+      value: "",
+      type: "text",
+      checked: false,
+      disabled: false,
+      selectedOptions: [],
+      parentElement: null,
+      hasAttribute: () => false,
+      getAttribute: () => null,
+      setAttribute() {},
+      contains: () => false,
+      getBoundingClientRect: () => rect,
+      appendChild(child: unknown) {
+        el.children.push(child);
+        return child;
+      },
+      remove() {},
+      attachShadow: () => ({ appendChild() {} }),
+      isContentEditable: false,
+    };
+    el.ownerDocument = doc;
+    return el;
+  }
 
-  const doc = {
-    createTreeWalker: () => emptyWalker,
+  const doc: any = {
+    createTreeWalker: () => ({ nextNode: () => null }),
+    createElement: (tag: string) => makeEl(tag),
     elementFromPoint: () => null,
     getElementById: () => null,
     title: "Stub",
-    body,
-    documentElement,
-    defaultView: null as unknown,
+    body: { innerText: "" },
+    documentElement: null,
+    defaultView: null,
   };
 
-  const win = {
+  doc.documentElement = makeEl("html");
+  doc.documentElement.scrollHeight = 2000;
+
+  const win: any = {
     innerWidth: 1280,
     innerHeight: 800,
     scrollX: 0,
     scrollY: 0,
-    getComputedStyle: () => ({ cursor: "auto", display: "block", visibility: "visible", opacity: "1" }),
+    frameElement: null,
+    getComputedStyle: () => ({
+      cursor: "auto",
+      display: "block",
+      visibility: "visible",
+      opacity: "1",
+    }),
+    // One stashed element, so the overlay builds a box and repositions it
+    // instead of returning early.
+    __tinyBrow: { els: [makeEl("button")], meta: [{ i: 0, role: "button", label: "Go" }] },
   };
   doc.defaultView = win;
 
-  const sandbox = {
+  return {
     document: doc,
     window: win,
     location: { href: "https://stub.invalid/" },
@@ -128,12 +174,9 @@ function runAgainstStubDom(source: string): ExtractorResult {
     HTMLSelectElement: class {},
     HTMLButtonElement: class {},
     HTMLIFrameElement: class {},
+    requestAnimationFrame: () => 1,
+    cancelAnimationFrame: () => {},
+    addEventListener: () => {},
+    removeEventListener: () => {},
   };
-
-  const keys = Object.keys(sandbox);
-  const values = keys.map((k) => sandbox[k as keyof typeof sandbox]);
-
-  const factory = new Function(...keys, `return (${source});`);
-  const extractor = factory(...values) as (cap: number, textCap: number) => ExtractorResult;
-  return extractor(40, 4000);
 }

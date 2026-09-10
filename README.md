@@ -8,9 +8,11 @@ name, and the agent runs on whatever OpenAI-compatible endpoint answers — Groq
 OpenRouter, Google AI Studio, LiteLLM, a local LM Studio server, or anything else
 speaking the same wire format.
 
-> **Status: M3.** The page indexer works: any page becomes a short numbered list of
-> things that can be clicked or typed into. There is no actuation and no agent yet,
-> so every harness task still reports `not_implemented`.
+> **Status: M4.** The indexer works and you can see what it sees — numbered boxes
+> drawn over every element in the index. There is no actuation and no agent yet, so
+> every harness task still reports `not_implemented`.
+>
+> The extension is called **Tiny** in the UI; `tiny-brow` is the project name.
 
 ## Where this is
 
@@ -22,8 +24,9 @@ The build runs through sixteen gated milestones (`docs/browser-agent-build-guide
 | M1 | Extension scaffold, side panel | **done** |
 | M2 | CDP attach, first screenshot | **done** |
 | M3 | The DOM indexer | **done** |
-| M4 | The highlight overlay | next |
-| M5–M6 | Manual actuation, cursor | |
+| M4 | The highlight overlay | **done** |
+| M5 | Manual actuation | next |
+| M6 | The cursor overlay | |
 | M7–M10 | Provider layer, agent loop, provider matrix | |
 | M11–M14 | Compression, repair, safety gate, router | |
 | M15 | Packaging and release | |
@@ -50,6 +53,7 @@ bottom exercise the messaging paths the agent will use:
 |---|---|
 | **Attach** / **Detach** | Opens or closes a pinned CDP session |
 | **Index** | Builds the numbered element index the model will act on |
+| **Overlay** | Re-indexes, then draws numbered boxes over every element on the page |
 | **Shot** | `Page.captureScreenshot`. Attaches first if needed, then detaches, so a one-shot never leaves the banner up |
 | **Ping** / **Probe** | Message round trips through the background worker and content script |
 
@@ -138,13 +142,42 @@ A full 40 elements costs ~1,364 tokens at worst and ~286 typically, against the
 2,000-token budget. That budget is not cosmetic: on a free Groq tier of 8,000
 tokens/minute, index size is what decides how many agent steps per minute you get.
 
+### The highlight overlay
+
+Numbered boxes over everything in the index, colour-coded by role — blue for text
+entry, amber for toggles, violet for links, mint for everything else. The point is
+not decoration: it finds indexer bugs in ten seconds that otherwise take a week to
+notice, because they present as "the model is dumb" rather than "index 14 points at
+an invisible div".
+
+Two things make it correct rather than approximately correct:
+
+**It re-measures live rects.** The boxes are repositioned from the real elements on
+every scroll and resize, rather than being frozen at the coordinates the index
+recorded. Sticky headers, modals and nested scrollers therefore work by construction.
+That is only possible because the overlay is drawn in the **page's main world**,
+where the indexer left its element references — a content script is in an isolated
+world and cannot see them. The guide suggests drawing from the content script; this
+is the one deviation, and re-measurement is the reason.
+
+**It cannot index itself.** The host carries `data-tiny-brow` and holds its boxes in
+a *closed* shadow root, so the indexer's `el.shadowRoot` check reads `null` and never
+walks in. `pointer-events: none` keeps it out of `elementFromPoint`, which matters
+more than it sounds: an overlay that answered hit tests would cover the page and the
+topmost filter would drop every element on it.
+
 ### The injected function must stay self-contained
 
-It is shipped by stringifying it, so a bundler hoisting one inner helper to module
-scope produces code that builds, typechecks, and then throws `ReferenceError` inside
-every page it touches. `npm run check:extractor` pulls the real function back out of
-the built bundle and runs it against a stub DOM, so that breakage fails the build
-instead of the browser.
+Everything that runs in the page — the indexer and both overlay functions — is
+shipped by stringifying it. A bundler hoisting one inner helper to module scope
+produces code that builds, typechecks, and then throws `ReferenceError` inside every
+page it touches.
+
+`npm run check:extractor` finds every injected function in the built bundle, pulls it
+back out, and executes it against a stub DOM, so that breakage fails the build
+instead of the browser. The stub is deliberately rich enough for each function to run
+its whole path; an early return would exit before reaching the helper the check
+exists to catch.
 
 ## The test suite
 
@@ -229,6 +262,7 @@ src/
     background/       service worker: message relay
       cdp.ts          the CDP session: attach, detach, screenshot, lifecycle
       extract.ts      the injected page indexer
+      overlay.ts      the injected highlight overlay
     content/          injected into every page; probes and, later, overlays
     sidepanel/        the React panel — where the agent loop will live
   components/         panel UI: header, transcript, composer, logo
@@ -248,7 +282,7 @@ harness/
   index.ts            CLI
 scripts/
   check-secrets.ts    the credential boundary, enforced
-  check-extractor.ts  proves the injected indexer survives bundling
+  check-extractor.ts  proves every injected function survives bundling
   make-icons.ts       renders the mark to PNG, no image toolchain needed
 docs/
   browser-agent-build-guide.md

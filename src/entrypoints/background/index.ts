@@ -1,5 +1,6 @@
 import * as cdp from "./cdp";
 import { buildIndex } from "./extract";
+import { hideHighlights, showHighlights } from "./overlay";
 import {
   isPanelMessage,
   type ContentMessage,
@@ -87,6 +88,26 @@ async function handle(msg: PanelMessage): Promise<PanelReply> {
           index,
         };
       } finally {
+        if (!wasAttached) await cdp.detach(tab.id).catch(() => {});
+      }
+    }
+
+    case "overlay": {
+      const tab = await requireTab();
+      const wasAttached = (await cdp.status(tab.id, tab.url)).state === "attached";
+      await cdp.attach(tab.id, tab.url, false);
+      try {
+        if (!msg.on) {
+          return { ok: true, kind: "overlay", on: false, count: await hideHighlights(tab.id) };
+        }
+        // Always re-index before drawing, so the numbers on screen are the
+        // numbers the model would be given right now.
+        const index = await buildIndex(tab.id);
+        const count = await showHighlights(tab.id);
+        return { ok: true, kind: "overlay", on: true, count, index };
+      } finally {
+        // The overlay keeps itself positioned once injected, so the session can
+        // close and take Chrome's banner with it.
         if (!wasAttached) await cdp.detach(tab.id).catch(() => {});
       }
     }

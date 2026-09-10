@@ -12,6 +12,7 @@ const TOOL_MESSAGE: Record<ToolId, PanelMessage> = {
   detach: { kind: "cdpDetach" },
   capture: { kind: "cdpScreenshot" },
   index: { kind: "buildIndex" },
+  overlay: { kind: "overlay", on: true },
   ping: { kind: "ping", sentAt: 0 },
   tab: { kind: "activeTab" },
   page: { kind: "probePage" },
@@ -23,6 +24,7 @@ export function App() {
     setTask, setRunning, setTab, setCdp, note, push, clear,
   } = usePanel();
   const [busyTool, setBusyTool] = useState<ToolId | null>(null);
+  const [overlayOn, setOverlayOn] = useState(false);
 
   const refresh = useCallback(async () => {
     const tabReply = await sendToBackground({ kind: "activeTab" });
@@ -33,6 +35,12 @@ export function App() {
     if (cdpReply.ok && cdpReply.kind === "cdpStatus") setCdp(cdpReply.status);
     return tabReply.tab;
   }, [setTab, setCdp]);
+
+  // A navigation destroys the overlay along with the page it was drawn on, so
+  // the toggle has to follow the URL rather than remember what the user clicked.
+  useEffect(() => {
+    setOverlayOn(false);
+  }, [tab?.url, tab?.id]);
 
   useEffect(() => {
     void refresh();
@@ -57,7 +65,11 @@ export function App() {
   const runTool = async (tool: ToolId) => {
     setBusyTool(tool);
     const msg =
-      tool === "ping" ? { kind: "ping" as const, sentAt: Date.now() } : TOOL_MESSAGE[tool];
+      tool === "ping"
+        ? { kind: "ping" as const, sentAt: Date.now() }
+        : tool === "overlay"
+          ? { kind: "overlay" as const, on: !overlayOn }
+          : TOOL_MESSAGE[tool];
     note("sent", `${tool} → background`);
 
     const reply = await sendToBackground(msg);
@@ -90,6 +102,16 @@ export function App() {
       case "cdpScreenshot":
         setCdp(reply.status);
         push({ kind: "shot", shot: reply.shot });
+        break;
+      case "overlay":
+        setOverlayOn(reply.on);
+        if (reply.index) push({ kind: "index", index: reply.index });
+        note(
+          "recv",
+          reply.on
+            ? `overlay on — ${reply.count} element${reply.count === 1 ? "" : "s"} highlighted`
+            : "overlay off",
+        );
         break;
       case "buildIndex": {
         setCdp(reply.status);
@@ -129,6 +151,7 @@ export function App() {
           running={running}
           cdp={cdp}
           busyTool={busyTool}
+          overlayOn={overlayOn}
           onChange={setTask}
           onRun={run}
           onStop={() => setRunning(false)}

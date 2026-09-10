@@ -5,7 +5,7 @@ export default defineConfig({
   srcDir: "src",
   modules: ["@wxt-dev/module-react"],
   manifest: {
-    name: "tiny-brow",
+    name: "Tiny",
     description:
       "A bring-your-own-key browser agent that drives the current tab from a side panel.",
     // sidePanel is added by WXT because a sidepanel entrypoint exists.
@@ -18,7 +18,7 @@ export default defineConfig({
       128: "icon/128.png",
     },
     action: {
-      default_title: "Open tiny-brow",
+      default_title: "Open Tiny",
       default_icon: {
         16: "icon/16.png",
         32: "icon/32.png",

@@ -272,6 +272,8 @@ function extractPage(indexCap: number, textCap: number) {
   const vh = window.innerHeight;
 
   const all = chosen.map((c) => {
+    // `el` is stripped before returning — Element is not serialisable — but it
+    // is carried this far so the survivors can be stashed for the overlay.
     const r = c.el.getBoundingClientRect();
     const x = Math.round(r.left + c.offX);
     const y = Math.round(r.top + c.offY);
@@ -287,6 +289,7 @@ function extractPage(indexCap: number, textCap: number) {
       frame: c.frame,
       note: noteFor(c.el),
       order: c.order,
+      el: c.el,
     };
   });
 
@@ -298,11 +301,20 @@ function extractPage(indexCap: number, textCap: number) {
       a.inViewport === b.inViewport ? a.order - b.order : a.inViewport ? -1 : 1,
     )
     .slice(0, indexCap)
-    .sort((a, b) => a.order - b.order)
-    .map((e, i) => {
-      const { order: _drop, ...rest } = e;
-      return { ...rest, i };
-    });
+    .sort((a, b) => a.order - b.order);
+
+  const elements = ranked.map((e, i) => {
+    const { order: _order, el: _el, ...rest } = e;
+    return { ...rest, i };
+  });
+
+  // Stashed in the page so the overlay can re-measure live rects on scroll.
+  // Element references cannot cross the CDP boundary, so anything that needs
+  // them has to run in this same world.
+  const store = (window as unknown as Record<string, any>).__tinyBrow ?? {};
+  store.els = ranked.map((e) => e.el);
+  store.meta = elements.map((e) => ({ i: e.i, role: e.role, label: e.label }));
+  (window as unknown as Record<string, any>).__tinyBrow = store;
 
   const text = (document.body?.innerText ?? "")
     .replace(/[ \t]+/g, " ")
@@ -312,7 +324,7 @@ function extractPage(indexCap: number, textCap: number) {
   return {
     url: location.href,
     title: document.title,
-    elements: ranked,
+    elements,
     totalFound: all.length,
     viewport: {
       w: vw,

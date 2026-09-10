@@ -8,6 +8,7 @@ import {
   Link2Off,
   Loader2,
   MousePointerClick,
+  ScanEye,
   Square,
   Wrench,
   Zap,
@@ -23,6 +24,7 @@ export type ToolId =
   | "detach"
   | "capture"
   | "index"
+  | "overlay"
   | "ping"
   | "tab"
   | "page";
@@ -32,6 +34,7 @@ interface Props {
   running: boolean;
   cdp: CdpStatus | null;
   busyTool: ToolId | null;
+  overlayOn: boolean;
   onChange: (task: string) => void;
   onRun: () => void;
   onStop: () => void;
@@ -43,6 +46,7 @@ export function Composer({
   running,
   cdp,
   busyTool,
+  overlayOn,
   onChange,
   onRun,
   onStop,
@@ -57,7 +61,7 @@ export function Composer({
   return (
     <div className="shrink-0 border-t border-border bg-surface/60">
       {tools && (
-        <div className="grid grid-cols-4 gap-1 border-b border-border px-2 py-2">
+        <div className="grid grid-cols-3 gap-1 border-b border-border px-2 py-2">
           {attached ? (
             <Tool
               id="detach"
@@ -84,6 +88,20 @@ export function Composer({
             icon={Layers}
             tip="Build the numbered element index the model will act on"
             disabled={restricted}
+            busyTool={busyTool}
+            onTool={onTool}
+          />
+          <Tool
+            id="overlay"
+            label={overlayOn ? "Hide" : "Overlay"}
+            icon={ScanEye}
+            tip={
+              overlayOn
+                ? "Remove the numbered boxes from the page"
+                : "Draw numbered boxes over everything in the index"
+            }
+            disabled={restricted}
+            active={overlayOn}
             busyTool={busyTool}
             onTool={onTool}
           />
@@ -134,7 +152,7 @@ export function Composer({
             }}
             rows={2}
             spellCheck={false}
-            placeholder="Ask tiny-brow to do something on this page…"
+            placeholder="Ask Tiny to do something on this page…"
             disabled={running}
             className="pr-11"
           />
@@ -190,6 +208,7 @@ function Tool({
   icon: Icon,
   tip,
   disabled,
+  active,
   busyTool,
   onTool,
 }: {
@@ -198,13 +217,14 @@ function Tool({
   icon: typeof Zap;
   tip: string;
   disabled?: boolean;
+  active?: boolean;
   busyTool: ToolId | null;
   onTool: (t: ToolId) => void;
 }) {
   return (
     <TooltipButton
       tip={tip}
-      variant="outline"
+      variant={active ? "primary" : "outline"}
       size="sm"
       disabled={disabled || busyTool !== null}
       onClick={() => onTool(id)}

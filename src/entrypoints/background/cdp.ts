@@ -111,7 +111,7 @@ export async function status(tabId: number | null, url: string): Promise<CdpStat
       attachedAt: session?.attachedAt,
       reason: session
         ? undefined
-        : "A debugger is attached to this tab, but not by tiny-brow. Detach will try to release it; if it is DevTools, close DevTools instead.",
+        : "A debugger is attached to this tab, but not by Tiny. Detach will try to release it; if it is DevTools, close DevTools instead.",
     };
   }
 

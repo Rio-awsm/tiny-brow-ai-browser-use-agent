@@ -36,7 +36,7 @@ export function PanelHeader({ tab, cdp, hasEvents, onClear }: Props) {
   return (
     <header className="flex h-11 shrink-0 items-center gap-2 border-b border-border px-3">
       <Logo className="size-[18px] text-primary" />
-      <span className="text-[13px] font-semibold tracking-tight">tiny-brow</span>
+      <span className="text-[13px] font-semibold tracking-tight">Tiny</span>
 
       <Tooltip>
         <TooltipTrigger asChild>

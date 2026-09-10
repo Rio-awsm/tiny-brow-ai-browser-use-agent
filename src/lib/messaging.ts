@@ -22,7 +22,8 @@ export type PanelMessage =
   | { kind: "cdpAttach" }
   | { kind: "cdpDetach" }
   | { kind: "cdpScreenshot" }
-  | { kind: "buildIndex" };
+  | { kind: "buildIndex" }
+  | { kind: "overlay"; on: boolean };
 
 export type ContentMessage = { kind: "probePage" };
 
@@ -33,6 +34,7 @@ export type PanelReply =
   | { ok: true; kind: "cdpStatus"; status: CdpStatus }
   | { ok: true; kind: "cdpScreenshot"; status: CdpStatus; shot: Screenshot }
   | { ok: true; kind: "buildIndex"; status: CdpStatus; index: PageIndex }
+  | { ok: true; kind: "overlay"; on: boolean; count: number; index?: PageIndex }
   | { ok: false; error: string };
 
 export const CONTENT_READY = "tiny-brow:content-ready";
@@ -46,6 +48,7 @@ const PANEL_KINDS: PanelMessage["kind"][] = [
   "cdpDetach",
   "cdpScreenshot",
   "buildIndex",
+  "overlay",
 ];
 
 export function isPanelMessage(msg: unknown): msg is PanelMessage {
