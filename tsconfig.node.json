@@ -1,10 +1,12 @@
 {
   "compilerOptions": {
     "target": "ES2023",
-    "lib": ["ES2023"],
+    "lib": ["ES2023", "DOM"],
+    "baseUrl": ".",
+    "paths": { "@/*": ["src/*"] },
     "module": "ESNext",
     "moduleResolution": "bundler",
-    "types": ["node"],
+    "types": ["node", "chrome"],
     "strict": true,
     "noImplicitOverride": true,
     "noFallthroughCasesInSwitch": true,

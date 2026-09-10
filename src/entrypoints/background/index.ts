@@ -23,10 +23,36 @@ import {
   type TabInfo,
 } from "@/lib/messaging";
 
+/**
+ * Opens the panel however this browser can.
+ *
+ * `chrome.sidePanel` is Chrome and Edge; other Chromium builds may not ship it.
+ * Reaching for it unguarded throws during background startup, which takes the
+ * message listener down with it — so the extension does not merely lose its
+ * side panel, it stops responding altogether. The fallback is a popup window
+ * showing the same page.
+ */
+function registerPanelOpener() {
+  if (chrome.sidePanel?.setPanelBehavior) {
+    chrome.sidePanel
+      .setPanelBehavior({ openPanelOnActionClick: true })
+      .catch((err) => console.error("[tiny-brow] setPanelBehavior failed", err));
+    return;
+  }
+
+  console.warn("[tiny-brow] no sidePanel API here — opening in a window instead");
+  chrome.action.onClicked.addListener(() => {
+    void chrome.windows.create({
+      url: chrome.runtime.getURL("/sidepanel.html"),
+      type: "popup",
+      width: 460,
+      height: 900,
+    });
+  });
+}
+
 export default defineBackground(() => {
-  chrome.sidePanel
-    .setPanelBehavior({ openPanelOnActionClick: true })
-    .catch((err) => console.error("[tiny-brow] setPanelBehavior failed", err));
+  registerPanelOpener();
 
   cdp.registerCdpLifecycle();
   registerSettleTracking();

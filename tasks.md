@@ -58,8 +58,9 @@ Enter → land on the article → read the lead paragraph.
 **Human path:** click Customer name → type → click Telephone → type → select the
 Large size radio → tick the Bacon checkbox → click Submit order.
 
-**Pass condition:** final URL is `https://httpbin.org/post` and the rendered JSON
-response contains `"custname": "Test User"` and `"size": "large"`.
+**Pass condition:** final URL is `https://httpbin.org/post` — which only happens on a
+real submission — and the answer names the customer, the size and the topping. It does
+not have to quote the response JSON verbatim; summarising it is a correct answer.
 
 **Why it is here:** typing, radio buttons, checkboxes and submission — four distinct
 actuation paths in one static, stable page.
@@ -76,8 +77,9 @@ from placeholder text rather than the associated label element.
 **Human path:** go to amazon.in → click the search box → type `wireless mouse` →
 Enter → read the first three organic result cards.
 
-**Pass condition:** exactly three items returned; each has a non-empty title and a
-price matching a rupee sign followed by digits. Sponsored results are acceptable.
+**Pass condition:** the answer names at least three prices in rupees alongside their
+titles. Sponsored results are acceptable. Prose is fine — the agent answers in text,
+so demanding a structured payload would make this unpassable rather than hard.
 
 **Why it is here:** a real site with a noisy DOM — thousands of nodes, heavy nesting,
 lazy images. This is the first task where the M3 indexer is genuinely tested.
@@ -191,8 +193,9 @@ interruptions are deterministic and always present.
 **Human path:** dismiss the cookie banner → dismiss/skip the login wall → then the
 T02 path.
 
-**Pass condition:** identical to T02, and the step log shows both interruptions were
-dismissed rather than clicked through by accident.
+**Pass condition:** identical to T02, and the run ends on the fixture. The article is
+unreachable until both overlays are dealt with, so a correct answer is itself the
+proof that they were.
 
 **Why it is here:** interruption handling is the difference between a demo and a tool.
 Making it a controlled fixture means it fails for one reason only.

@@ -155,7 +155,55 @@ function extractPage(indexCap: number, textCap: number) {
     if (!label) label = attr("name");
 
     label = label.replace(/\s+/g, " ").trim();
+
+    // The × on a popup is the single most useful control on the page and the
+    // one most likely to arrive unlabelled: an icon-only button whose text is a
+    // glyph, or nothing at all. Listed as `button ""` the model cannot know
+    // what it does, so it fights the overlay instead of closing it.
+    if (!label || /^[×✕✖⨯xX✗✘＋+]$/.test(label)) {
+      const hints = [
+        el.className && typeof el.className === "string" ? el.className : "",
+        el.id,
+        attr("data-testid"),
+        attr("data-test"),
+        attr("data-dismiss"),
+        attr("aria-label"),
+        el.querySelector("svg > title")?.textContent ?? "",
+      ].join(" ");
+
+      if (/close|dismiss|cross|modal__x|popup-close|btn-close/i.test(hints)) return "Close";
+      if (label) return "Close";
+    }
+
     return label.length > MAX_LABEL ? label.slice(0, MAX_LABEL - 1) + "…" : label;
+  }
+
+  /**
+   * Whether this element lives inside a modal dialog.
+   *
+   * Worth a token: it tells the model that what it can see is an overlay and
+   * that everything else on the page is behind it, which is otherwise only
+   * inferrable from the index having gone strangely short.
+   */
+  function inDialog(el: Element): boolean {
+    let node: Element | null = el;
+    let guard = 0;
+
+    while (node && guard++ < 25) {
+      const role = node.getAttribute?.("role") ?? "";
+      if (
+        node.tagName === "DIALOG" ||
+        node.getAttribute?.("aria-modal") === "true" ||
+        role === "dialog" ||
+        role === "alertdialog"
+      ) {
+        return true;
+      }
+      const parent: Node | null =
+        node.parentElement ?? (node.getRootNode() as ShadowRoot).host ?? null;
+      node = parent instanceof Element ? parent : null;
+    }
+    return false;
   }
 
   function roleFor(el: Element): string {
@@ -185,6 +233,7 @@ function extractPage(indexCap: number, textCap: number) {
       if (selected) bits.push(`= ${selected.text.slice(0, 20)}`);
     }
     if ((el as HTMLButtonElement).disabled) bits.push("disabled");
+    if (inDialog(el)) bits.push("in dialog");
     if (el.getAttribute("aria-expanded")) {
       bits.push(el.getAttribute("aria-expanded") === "true" ? "expanded" : "collapsed");
     }

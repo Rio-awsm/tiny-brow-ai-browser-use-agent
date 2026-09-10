@@ -309,10 +309,10 @@ export async function runCommand(
 export async function navigateTab(tabId: number, url: string): Promise<ActionResult> {
   const started = performance.now();
   await chrome.tabs.update(tabId, { url });
-  const loaded = await waitForLoad(tabId);
+  const loaded = await waitForLoad(tabId, url);
   return {
     summary: `navigated to ${url}`,
-    detail: loaded ? undefined : "page was still loading when the wait timed out",
+    detail: loaded ? undefined : "did not reach that page before the wait timed out",
     tookMs: Math.round(performance.now() - started),
   };
 }
@@ -331,7 +331,7 @@ export async function openTab(
 
   // A brand-new tab has no history with the settle tracker.
   forgetActivity(tab.id);
-  const loaded = url ? await waitForLoad(tab.id) : true;
+  const loaded = url ? await waitForLoad(tab.id, url) : true;
 
   return {
     tabId: tab.id,
@@ -343,19 +343,57 @@ export async function openTab(
   };
 }
 
-function waitForLoad(tabId: number, timeoutMs = 15_000): Promise<boolean> {
+/**
+ * Waits for the tab to finish loading *the page we asked for*.
+ *
+ * Waiting for any "complete" is not enough. If a load was already in flight —
+ * likely, since the previous action may have started one — its completion
+ * arrives first and satisfies the wait, and everything downstream then reads
+ * the old page. That failure is invisible: the navigation looks successful and
+ * the agent simply reasons about the wrong site.
+ */
+function waitForLoad(tabId: number, want: string, timeoutMs = 20_000): Promise<boolean> {
+  const target = origin(want);
+
   return new Promise((resolve) => {
     const finish = (loaded: boolean) => {
       chrome.tabs.onUpdated.removeListener(onUpdated);
+      clearInterval(poll);
       clearTimeout(timer);
       resolve(loaded);
     };
-    const onUpdated = (id: number, info: { status?: string }) => {
-      if (id === tabId && info.status === "complete") finish(true);
+
+    const arrived = (url: string | undefined, status: string | undefined) =>
+      status === "complete" && url !== undefined && origin(url) === target;
+
+    const onUpdated = (id: number, info: { status?: string; url?: string }, tab: chrome.tabs.Tab) => {
+      if (id !== tabId) return;
+      if (arrived(info.url ?? tab.url, info.status ?? tab.status)) finish(true);
     };
+
+    // A backstop for the case where the event fires before the listener is
+    // attached, or the page redirects without emitting one we see.
+    const poll = setInterval(() => {
+      chrome.tabs
+        .get(tabId)
+        .then((tab) => {
+          if (arrived(tab.url, tab.status)) finish(true);
+        })
+        .catch(() => finish(false));
+    }, 250);
+
     const timer = setTimeout(() => finish(false), timeoutMs);
     chrome.tabs.onUpdated.addListener(onUpdated);
   });
+}
+
+/** Compared by origin, because sites redirect within themselves constantly. */
+function origin(url: string): string {
+  try {
+    return new URL(url).origin;
+  } catch {
+    return url;
+  }
 }
 
 function describe(t: Target): string {

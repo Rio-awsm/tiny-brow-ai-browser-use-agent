@@ -17,7 +17,7 @@ click     Click an element. Set index.
 type      Type into an element. Set index and value. This types only — to submit a search or a form, click its button afterwards.
 scroll    Scroll the page. Set direction to up or down.
 navigate  Go to a URL. Set value to the full URL.
-extract   Answer the task from the page text you were given. Set value to the answer.
+extract   Take a fact off this page that the task needs and save it to NOTES. Set value to the fact itself — the price, the name, the paragraph — never a plan or a description of what you are about to do. Use it once per fact; NOTES keeps it for you after you leave the page.
 done      The task is complete. Set value to the final answer for the user.
 fail      You cannot make progress. Set value to why.
 
@@ -29,6 +29,9 @@ RULES
 5. If the last action changed nothing, do something different. Repeating it will not help.
 6. Answer from PAGE TEXT when the task is a question. Do not answer from memory.
 7. Finish with done as soon as the task is satisfied, and put the actual answer in value. Do not keep exploring.
+7a. NOTES is everything you have extracted so far. When it holds every fact the task asked for, use done and write the full answer out of it — all of the facts, not the last one.
+7b. A task that spans two sites needs a fact from each. Extract the first one before you leave the page that has it. Never leave a page for the second site until the first fact is in NOTES.
+7c. Never extract a fact that is already in NOTES. Extract the next one, or finish.
 8. reason is one short sentence saying why this action, not a description of the page.
 9. If ELEMENTS is empty because the page cannot be inspected, use navigate to go somewhere you can work. Do not use fail for that.
 
@@ -48,8 +51,12 @@ export interface PromptInput {
   task: string;
   history: HistoryEntry[];
   page: PageIndex;
+  /** Every fact extracted so far, oldest first. */
+  notes?: string[];
   /** Set when the previous proposal was rejected or invalid, to steer the retry. */
   correction?: string;
+  /** Something about this page the model needs to act on before anything else. */
+  notice?: string | null;
 }
 
 /**
@@ -64,7 +71,8 @@ export function buildMessages(input: PromptInput): Message[] {
   ];
 
   messages.push({ role: "user", content: historyBlock(input.history) });
-  messages.push({ role: "user", content: stateBlock(input.page) });
+  messages.push({ role: "user", content: notesBlock(input.notes ?? []) });
+  messages.push({ role: "user", content: stateBlock(input.page, input.notice) });
 
   if (input.correction) {
     messages.push({ role: "user", content: `CORRECTION\n${input.correction}` });
@@ -85,7 +93,25 @@ function historyBlock(history: HistoryEntry[]): string {
   ].join("\n");
 }
 
-function stateBlock(page: PageIndex): string {
+/**
+ * The facts gathered so far, kept verbatim.
+ *
+ * History alone is not enough for a task that needs several facts: its lines are
+ * truncated summaries, so by the time the model is ready to answer it can no
+ * longer read back what it found. Without this it re-extracts the first fact
+ * forever, or leaves a site before taking what it came for.
+ */
+function notesBlock(notes: string[]): string {
+  if (notes.length === 0) return "NOTES\n(empty — nothing extracted yet)";
+  return [
+    "NOTES",
+    ...notes.map((n, i) => `${i + 1}. ${n.slice(0, MAX_NOTE_CHARS)}`),
+  ].join("\n");
+}
+
+const MAX_NOTE_CHARS = 600;
+
+function stateBlock(page: PageIndex, notice?: string | null): string {
   const elements = serializeIndex(page.elements);
   const truncated =
     page.totalFound > page.elements.length
@@ -94,6 +120,9 @@ function stateBlock(page: PageIndex): string {
 
   return [
     "CURRENT PAGE",
+    // First line of the block, because it changes what the right move is and
+    // the model reads the top of a section most reliably.
+    ...(notice ? [`NOTICE: ${notice}`] : []),
     `url: ${page.url}`,
     `title: ${page.title}`,
     serializeViewport(page.viewport),

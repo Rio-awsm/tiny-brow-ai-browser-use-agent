@@ -34,6 +34,12 @@ export interface Preset {
   baseUrl: string;
   /** Env var holding the key. */
   keyEnv: string;
+  /**
+   * Env var holding the endpoint, when it is not fixed. A preset's `baseUrl` is
+   * only a default: LiteLLM is as often a hosted gateway as a local proxy, and
+   * a self-hosted OpenAI-compatible endpoint lives wherever its owner put it.
+   */
+  baseUrlEnv?: string;
   /** Env var holding the model, when the preset suggests one. */
   modelEnv?: string;
   defaultModel?: string;
@@ -46,6 +52,7 @@ export const PRESETS: Record<string, Preset> = {
   groq: {
     needsKey: true,
     name: "groq",
+    baseUrlEnv: "GROQ_BASE_URL",
     baseUrl: "https://api.groq.com/openai/v1",
     keyEnv: "GROQ_API_KEY",
     modelEnv: "GROQ_MODEL",
@@ -59,6 +66,7 @@ export const PRESETS: Record<string, Preset> = {
   openrouter: {
     needsKey: true,
     name: "openrouter",
+    baseUrlEnv: "OPENROUTER_BASE_URL",
     baseUrl: "https://openrouter.ai/api/v1",
     keyEnv: "OPENROUTER_API_KEY",
     modelEnv: "OPENROUTER_MODEL",
@@ -68,6 +76,7 @@ export const PRESETS: Record<string, Preset> = {
   google: {
     needsKey: true,
     name: "google",
+    baseUrlEnv: "GOOGLE_BASE_URL",
     baseUrl: "https://generativelanguage.googleapis.com/v1beta/openai",
     keyEnv: "GOOGLE_API_KEY",
     modelEnv: "GOOGLE_MODEL",
@@ -76,6 +85,7 @@ export const PRESETS: Record<string, Preset> = {
   litellm: {
     needsKey: false,
     name: "litellm",
+    baseUrlEnv: "LITELLM_BASE_URL",
     baseUrl: "http://127.0.0.1:4000/v1",
     keyEnv: "LITELLM_API_KEY",
     modelEnv: "LITELLM_MODEL",
@@ -83,6 +93,7 @@ export const PRESETS: Record<string, Preset> = {
   lmstudio: {
     needsKey: false,
     name: "lmstudio",
+    baseUrlEnv: "LMSTUDIO_BASE_URL",
     baseUrl: "http://127.0.0.1:1234/v1",
     keyEnv: "LMSTUDIO_API_KEY",
     modelEnv: "LMSTUDIO_MODEL",
@@ -123,7 +134,11 @@ export function resolveBackend(opts: ResolveOptions = {}): BackendConfig {
   const generic = <T>(v: T | undefined) => (pinned ? undefined : v);
 
   const baseUrl =
-    opts.baseUrl ?? generic(process.env.LLM_BASE_URL) ?? preset?.baseUrl ?? "";
+    opts.baseUrl ??
+    (preset?.baseUrlEnv ? process.env[preset.baseUrlEnv] : undefined) ??
+    generic(process.env.LLM_BASE_URL) ??
+    preset?.baseUrl ??
+    "";
 
   const model =
     opts.model ??
@@ -165,6 +180,13 @@ export function validateBackend(b: BackendConfig): ConfigProblem[] {
     problems.push({ field: "baseUrl", message: `not an http(s) URL: ${b.baseUrl}` });
   } else if (b.baseUrl.endsWith("/")) {
     problems.push({ field: "baseUrl", message: "trailing slash will produce a double slash in request paths" });
+  } else if (/\/chat\/completions\/?$/.test(b.baseUrl)) {
+    // Copied straight from a provider's docs, this reads correct and 404s: the
+    // path is appended, so the request goes to /chat/completions/chat/completions.
+    problems.push({
+      field: "baseUrl",
+      message: "drop the /chat/completions — it is appended for you",
+    });
   }
   if (!b.model) {
     problems.push({ field: "model", message: "no model — set LLM_MODEL or pass --model" });

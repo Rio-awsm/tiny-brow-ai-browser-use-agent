@@ -15,6 +15,10 @@ export { SYSTEM_PROMPT, buildMessages, historyLine, type HistoryEntry } from "./
 /** Hosts and paths that exist to authenticate a human, not an agent. */
 const AUTH_HOST = /(^|\.)accounts\.google\.com$|(^|\.)login\.|(^|\.)signin\.|(^|\.)auth\./i;
 const AUTH_PATH = /\/(login|log-in|signin|sign-in|signup|sign-up|register|auth|oauth|sso|challenge|verify)(\/|$|\?)/i;
+// Word boundaries matter on the short ones: "otp" sits inside "adoption" and
+// "pin" inside "shipping", either of which would refuse an ordinary field.
+const SECRET_FIELD = /password|passcode|one[- ]?time|\botp\b|\bcvv\b/i;
+const DISMISS = /\bclose\b|dismiss|not now|no thanks|maybe later|\bskip\b|continue without/i;
 
 /**
  * Recognises a page that is asking a human to prove who they are.
@@ -35,15 +39,60 @@ export function detectAuthWall(page: PageIndex): string | null {
     /* a page with no parseable URL is not an auth wall */
   }
 
-  const secretField = page.elements.find((e) =>
-    /password|passcode|one[- ]?time|otp/i.test(`${e.role} ${e.note} ${e.label}`),
-  );
-
-  if (secretField) return "This page is asking for a password or a one-time code.";
+  // Only the URL decides. A page that exists to sign you in has nothing else on
+  // it to do, so stopping is right.
   if (host && AUTH_HOST.test(host)) return `${host} is a sign-in page.`;
   if (path && AUTH_PATH.test(path)) return "This page is a sign-in or registration flow.";
+
+  // A password field on an ordinary URL is an overlay, not a wall. Trying to
+  // tell "dismissible" from "not" by looking for a close control does not work:
+  // plenty of sites give theirs no accessible name at all, and guessing wrong
+  // hands over a task the agent could have finished. Let it try — filling the
+  // field is refused in `validateAction` regardless, and if it genuinely cannot
+  // get past the overlay the loop detector hands over a few steps later.
   return null;
 }
+
+/** Index of a plausible way out of an overlay, or null if there is none. */
+export function findDismissControl(page: PageIndex): number | null {
+  const match = page.elements.find((e) => DISMISS.test(`${e.label} ${e.note}`));
+  return match ? match.i : null;
+}
+
+/**
+ * The one thing about this page that has to be dealt with before the task.
+ *
+ * A popup thrown over a site on arrival is the common case, and from the index
+ * alone it is not obvious: the model sees a handful of elements that have
+ * nothing to do with its task and starts guessing at them. Saying that a dialog
+ * is open, and which element closes it, turns several wasted steps into one.
+ */
+export function pageNotice(page: PageIndex): string | null {
+  const wall = detectAuthWall(page);
+  if (wall) return `${wall} You cannot sign in — use ask.`;
+
+  const dismiss = findDismissControl(page);
+  const closes =
+    dismiss === null
+      ? "Find its close button and click it."
+      : `[${dismiss}] closes it.`;
+
+  // A sign-in prompt on an ordinary page is something to get past, not a
+  // reason to stop — and it is worth saying so, because the elements on show
+  // have nothing to do with the task and invite guessing.
+  const signIn = page.elements.some((e) =>
+    SECRET_FIELD.test(`${e.role} ${e.note} ${e.label}`),
+  );
+  if (signIn) {
+    return `A sign-in prompt is covering the page. You cannot sign in, so do not fill it in — dismiss it and carry on with the task. ${closes}`;
+  }
+
+  const dialog = page.elements.some((e) => e.note.includes("in dialog"));
+  if (!dialog) return null;
+
+  return `A dialog is covering the page and everything behind it is hidden. ${closes} Do that first unless the dialog is what you need.`;
+}
+
 
 /**
  * Stands in for a page Chrome will not let us inspect.
@@ -85,6 +134,7 @@ export interface ProposeInput {
   task: string;
   page: PageIndex;
   history: HistoryEntry[];
+  notes?: string[];
   correction?: string;
   signal?: AbortSignal;
 }
@@ -93,8 +143,10 @@ export async function propose(input: ProposeInput): Promise<Proposal> {
   const messages = buildMessages({
     task: input.task,
     history: input.history,
+    notes: input.notes,
     page: input.page,
     correction: input.correction,
+    notice: pageNotice(input.page),
   });
 
   const result = await makeProvider(input.config).complete({

@@ -19,12 +19,17 @@
     "typecheck:node": "tsc -p tsconfig.node.json",
     "typecheck:ext": "wxt prepare && tsc --noEmit",
     "typecheck": "npm run typecheck:node && npm run typecheck:ext",
-    "check": "npm run typecheck && npm run verify:tasks && npm run build && npm run check:secrets && npm run check:extractor",
+    "check": "npm run typecheck && npm run verify:tasks && npm run check:chars && npm run check:loop && npm run build && npm run check:secrets && npm run check:extractor",
     "icons": "tsx scripts/make-icons.ts",
     "check:extractor": "tsx scripts/check-extractor.ts",
     "bench": "tsx harness/index.ts --driver bridge",
     "matrix": "tsx harness/index.ts --compare",
-    "fixtures": "tsx scripts/fixtures.ts"
+    "fixtures": "tsx scripts/fixtures.ts",
+    "dev:edge": "wxt -b edge",
+    "build:edge": "wxt build -b edge",
+    "build:all": "wxt build && wxt build -b edge",
+    "check:chars": "tsx scripts/check-chars.ts",
+    "check:loop": "tsx scripts/loop-cases.ts"
   },
   "devDependencies": {
     "@tailwindcss/vite": "^4.3.3",

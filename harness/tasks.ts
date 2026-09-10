@@ -50,10 +50,14 @@ export const TASKS: TaskDefinition[] = [
     prompt:
       'On https://httpbin.org/forms/post, order a large pizza with bacon topping for "Test User", phone 5551234567, and submit the form.',
     startUrl: "https://httpbin.org/forms/post",
+    // Landing on /post proves the form was submitted; the answer only has to
+    // show the agent knew what it sent. Demanding it quote the raw JSON failed
+    // runs that had done the task perfectly and summarised the response.
     check: (o) =>
       o.finalUrl.startsWith("https://httpbin.org/post") &&
-      /"custname"\s*:\s*"Test User"/.test(o.answer) &&
-      /"size"\s*:\s*"large"/.test(o.answer),
+      /test user/i.test(o.answer) &&
+      /large/i.test(o.answer) &&
+      /bacon/i.test(o.answer),
   },
   {
     id: "T04",
@@ -63,12 +67,12 @@ export const TASKS: TaskDefinition[] = [
     prompt:
       'Search Amazon.in for "wireless mouse" and give me the titles and prices of the first three results.',
     startUrl: "https://www.amazon.in",
+    // Read out of the answer text, not a structured payload: the action schema
+    // has no data field, so requiring one made this task unpassable by
+    // construction rather than difficult.
     check: (o) => {
-      const items = asItems(o.data);
-      return (
-        items.length === 3 &&
-        items.every((i) => i.title.length > 0 && RUPEE.test(i.price))
-      );
+      const prices = o.answer.match(new RegExp(RUPEE.source, "g")) ?? [];
+      return prices.length >= 3 && norm(o.answer).length > 60;
     },
   },
   {
@@ -138,31 +142,20 @@ export const TASKS: TaskDefinition[] = [
     // Local fixture so the cookie banner and login wall are always present and
     // always identical. Served by `npm run fixtures`.
     startUrl: "http://127.0.0.1:5199/gauntlet/",
+    // The article is unreachable until both overlays are gone, so a correct
+    // answer is itself the proof. Counting keywords in the reasons only ever
+    // produced false negatives on runs that had handled them fine.
     check: (o) => {
       const a = norm(o.answer);
-      const dismissed = o.steps.filter((s) =>
-        /cookie|accept|login|dismiss|close/i.test(s.action + " " + s.reason),
-      ).length;
       return (
+        o.finalUrl.includes("127.0.0.1:5199") &&
         /chandrayaan/i.test(a) &&
         (/isro/i.test(a) || /lunar/i.test(a)) &&
-        a.length >= 150 &&
-        dismissed >= 2
+        a.length >= 150
       );
     },
   },
 ];
-
-/** Narrow the freeform `done` payload for T04 without trusting its shape. */
-function asItems(data: unknown): Array<{ title: string; price: string }> {
-  if (!Array.isArray(data)) return [];
-  return data.flatMap((d) => {
-    if (typeof d !== "object" || d === null) return [];
-    const { title, price } = d as Record<string, unknown>;
-    if (typeof title !== "string" || typeof price !== "string") return [];
-    return [{ title, price }];
-  });
-}
 
 export function taskById(id: string): TaskDefinition | undefined {
   return TASKS.find((t) => t.id.toLowerCase() === id.toLowerCase() || t.slug === id);

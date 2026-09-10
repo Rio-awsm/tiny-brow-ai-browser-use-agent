@@ -81,6 +81,13 @@ async function runAttempt(
 ): Promise<AttemptResult> {
   const startedAt = new Date().toISOString();
   const t0 = performance.now();
+
+  // Decided before driving, not after. Running a task only to discard the
+  // result wastes tokens and, worse, leaves the browser on that task's page for
+  // whatever runs next.
+  if (task.requiresAuth && !opts.authed) {
+    return skipped(task, attempt, opts, startedAt, "needs a signed-in profile");
+  }
   const ac = new AbortController();
   const timer = setTimeout(() => ac.abort(), opts.timeoutMs);
 
@@ -146,6 +153,35 @@ async function runAttempt(
     error: outcome.error,
     startedAt,
     stepLog: outcome.steps,
+  };
+}
+
+function skipped(
+  task: TaskDefinition,
+  attempt: number,
+  opts: RunOptions,
+  startedAt: string,
+  why: string,
+): AttemptResult {
+  return {
+    taskId: task.id,
+    taskSlug: task.slug,
+    tier: task.tier,
+    provider: opts.backend.provider,
+    model: opts.backend.model,
+    baseUrl: opts.backend.baseUrl,
+    attempt,
+    verdict: "skipped",
+    steps: 0,
+    usage: { prompt: 0, completion: 0 },
+    timing: {
+      totalMs: 0, requestMs: 0, prefillMs: 0, generationMs: 0,
+      rateLimitWaitMs: 0, browserMs: 0, harnessMs: 0,
+    },
+    answer: "",
+    error: why,
+    startedAt,
+    stepLog: [],
   };
 }
 

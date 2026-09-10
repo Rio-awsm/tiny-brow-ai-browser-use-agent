@@ -264,6 +264,21 @@ manual commands use and records a one-line summary; pressing Run again asks for 
 next step. Rejecting re-asks with the rejection stated, so it proposes something
 different rather than repeating itself.
 
+### Popups
+
+Sites throw a login or promo dialog over their content on arrival, and from the index
+alone that is not obvious — the model sees a handful of elements unrelated to its task
+and starts guessing at them.
+
+Two things make this tractable. The indexer **names close controls**: an icon-only
+button whose text is a glyph, or nothing at all, becomes `button "Close"` when its
+class, id, test id or SVG title says so. Listed as `button ""` the model cannot know
+what it does. And elements inside a modal are marked `in dialog`, so the state block
+can say plainly that a dialog is covering the page and which element closes it.
+
+A dismissible login popup is therefore **not** treated as a wall to hand over. Only a
+dedicated sign-in page, or a popup with no way out, stops the run.
+
 ### When only you can do it
 
 Tiny cannot sign in, and it should not try. A login page is the worst kind of wall for
@@ -606,10 +621,22 @@ naming the specific failure for every failure is an M10 exit gate.
 ## Checks
 
 ```bash
-npm run check          # typecheck + task drift + secret boundary
+npm run check          # typecheck + drift + control chars + loop + secrets + injection
 npm run verify:tasks   # tasks.md and harness/tasks.ts agree
 npm run check:secrets  # no credential can reach the extension bundle
+npm run check:chars    # no control characters in source
+npm run check:loop     # the agent loop against a scripted model
 ```
+
+`check:loop` replaces the model with a list of replies and the browser with a page
+that only changes when the case says it does, which leaves the loop's own judgement
+as the only thing under test: when it pushes back on a repeat, when it believes a
+give-up, and what it answers with. These are the behaviours the benchmark measures
+indirectly and expensively, so they are worth pinning down for free.
+
+`check:chars` exists because a backspace byte written where `` was meant reads as a
+word boundary in every editor and matches nothing at runtime. It reached this repo
+once and silently disabled OTP detection for several milestones.
 
 `verify:tasks` guards the prose spec against the executable registry. They are
 edited at different times for different reasons, so they will drift.
@@ -675,6 +702,27 @@ docs/
 ## Stack
 
 WXT (MV3, Vite), React 19, TypeScript, Tailwind v4, Zustand, Radix primitives.
+
+## Which browsers
+
+Chromium only, and that is a hard architectural limit rather than a missing
+feature: everything rests on `chrome.debugger`, and Firefox does not expose CDP to
+extensions at all.
+
+| Browser | Status |
+|---|---|
+| Chrome | `npm run dev`, `npm run build` |
+| Edge | `npm run dev:edge`, `npm run build:edge` — same code, same manifest |
+| Brave, Opera, Vivaldi | load the `chrome-mv3` build unpacked |
+| Firefox, Safari | not possible — no debugger API |
+
+`npm run build:all` produces both outputs.
+
+The one API that is not universal is `chrome.sidePanel`. Where it is missing the
+panel opens in a popup window instead — and, more importantly, reaching for it
+unguarded threw during background startup, which took the message listener down with
+it. The extension did not merely lose its side panel there; it stopped responding at
+all.
 
 ## Requirements
 
