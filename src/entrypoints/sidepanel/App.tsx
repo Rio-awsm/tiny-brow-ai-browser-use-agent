@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useState } from "react";
+import { useCallback, useEffect, useRef, useState } from "react";
 import { Composer, type ToolId } from "@/components/Composer";
 import { PanelHeader } from "@/components/PanelHeader";
 import { SettingsView } from "@/components/SettingsView";
@@ -18,7 +18,15 @@ import {
   type HistoryEntry,
   type Proposal,
 } from "@/lib/agent";
+import { runLoop, type ExecuteResult } from "@/lib/agent/loop";
+import {
+  DEFAULT_AGENT_SETTINGS,
+  loadAgentSettings,
+  saveAgentSettings,
+  type AgentSettings,
+} from "@/lib/settings";
 import type { PageIndex } from "@/lib/page-index";
+import type { Command } from "@/lib/commands";
 
 const TOOL_MESSAGE: Record<ToolId, PanelMessage> = {
   attach: { kind: "cdpAttach" },
@@ -35,7 +43,7 @@ const TOOL_MESSAGE: Record<ToolId, PanelMessage> = {
 export function App() {
   const {
     task, running, tab, cdp, events,
-    setTask, setRunning, setTab, setCdp, note, push, resolveProposal, clear,
+    setTask, setRunning, setTab, setCdp, note, push, patchStep, resolveProposal, clear,
   } = usePanel();
   const [busyTool, setBusyTool] = useState<ToolId | null>(null);
   const [overlayOn, setOverlayOn] = useState(false);
@@ -49,6 +57,12 @@ export function App() {
   const [goal, setGoal] = useState<string | null>(null);
   const [history, setHistory] = useState<HistoryEntry[]>([]);
   const [pending, setPending] = useState<{ id: number; proposal: Proposal } | null>(null);
+  const [agent, setAgent] = useState<AgentSettings>(DEFAULT_AGENT_SETTINGS);
+  const runAbort = useRef<AbortController | null>(null);
+
+  useEffect(() => {
+    void loadAgentSettings().then(setAgent);
+  }, []);
 
   useEffect(() => {
     void loadConfig().then(setProvider);
@@ -231,10 +245,105 @@ export function App() {
   };
 
   const stop = async () => {
+    // Two halves: the panel-side loop stops between steps, and the background
+    // aborts whatever action or request is already in flight.
+    runAbort.current?.abort();
     const reply = await sendToBackground({ kind: "abort", tabId: targetTabId });
-    if (reply.ok && reply.kind === "abort" && !reply.stopped) {
-      // Nothing was mid-flight; drop the busy state so the button is honest.
+    if (reply.ok && reply.kind === "abort" && !reply.stopped && !runAbort.current) {
       setRunning(false);
+    }
+  };
+
+  /** Runs one action through the actuation layer and reports it back to the loop. */
+  const executeCommand = async (command: Command): Promise<ExecuteResult> => {
+    const reply = await sendToBackground({
+      kind: "command",
+      command,
+      cursor: cursorOn,
+      tabId: targetTabId,
+    });
+    if (!reply.ok) return { ok: false, summary: reply.error };
+    if (reply.kind !== "command") return { ok: false, summary: "unexpected reply" };
+
+    setOverlayOn(reply.overlayOn);
+    if (reply.tabId) setTargetTabId(reply.tabId);
+    return { ok: true, summary: reply.result.summary };
+  };
+
+  const runAutonomously = async (goalText: string) => {
+    if (validateConfig(provider).length > 0) {
+      note("error", "No model configured yet — open settings and add one.");
+      setSettingsOpen(true);
+      return;
+    }
+
+    const controller = new AbortController();
+    runAbort.current = controller;
+    setRunning(true);
+
+    const current = await refresh();
+    const tabId = current?.id ?? targetTabId;
+    await sendToBackground({ kind: "runStart", tabId });
+
+    // The step card is written before the outcome is known, then patched, so
+    // the panel shows what is happening rather than what already happened.
+    let stepId: number | null = null;
+
+    try {
+      const outcome = await runLoop({
+        task: goalText,
+        config: provider,
+        stepCap: agent.stepCap,
+        signal: controller.signal,
+        readPage: async () => {
+          const page = await readPage();
+          if (!page) throw new Error("could not read the page");
+          return page;
+        },
+        execute: (command) => executeCommand(command),
+        onStepStart: (n, page) => {
+          push({
+            kind: "step",
+            n,
+            url: page.url,
+            title: page.title,
+            indexSize: page.elements.length,
+            totalFound: page.totalFound,
+            action: null,
+            usage: null,
+            cached: 0,
+            thinkMs: 0,
+            outcome: "",
+            state: "thinking",
+          });
+          stepId = usePanel.getState().events.at(-1)?.id ?? null;
+        },
+        onProposal: (_n, proposal) => {
+          if (stepId === null) return;
+          patchStep(stepId, {
+            action: proposal.action,
+            usage: proposal.usage,
+            cached: proposal.cached,
+            thinkMs: proposal.requestMs,
+            state: "acting",
+          });
+        },
+        onStepEnd: (_n, outcomeText, ok) => {
+          if (stepId === null) return;
+          patchStep(stepId, { outcome: outcomeText, state: ok ? "ok" : "bad" });
+        },
+        onWait: (ms, why) => note("info", `${why} — waiting ${Math.round(ms / 1000)}s`),
+      });
+
+      push({ kind: "summary", outcome, task: goalText });
+    } catch (err) {
+      note("error", err instanceof Error ? err.message : String(err));
+    } finally {
+      await sendToBackground({ kind: "runEnd", tabId });
+      runAbort.current = null;
+      setRunning(false);
+      setGoal(null);
+      await refresh();
     }
   };
 
@@ -366,8 +475,13 @@ export function App() {
     if (text) {
       push({ kind: "task", text });
       setTask("");
-      setGoal(text);
       setHistory([]);
+
+      if (agent.autoRun) {
+        await runAutonomously(text);
+        return;
+      }
+      setGoal(text);
       await askForAction(text, []);
       return;
     }
@@ -381,9 +495,11 @@ export function App() {
       <TooltipProvider delayDuration={300}>
         <SettingsView
           config={provider}
+          agent={agent}
           onClose={() => setSettingsOpen(false)}
-          onSaved={(next) => {
+          onSaved={(next, nextAgent) => {
             setProvider(next);
+            setAgent(nextAgent);
             note("info", `model set to ${next.model}`);
             setSettingsOpen(false);
           }}
@@ -418,6 +534,12 @@ export function App() {
           overlayOn={overlayOn}
           cursorOn={cursorOn}
           canContinue={goal !== null && pending === null}
+          autoRun={agent.autoRun}
+          onToggleAuto={() => {
+            const next = { ...agent, autoRun: !agent.autoRun };
+            setAgent(next);
+            void saveAgentSettings(next);
+          }}
           onChange={setTask}
           onRun={() => void run()}
           onStop={() => void stop()}

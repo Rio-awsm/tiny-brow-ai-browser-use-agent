@@ -3,7 +3,9 @@ import type { CdpStatus, Screenshot } from "./cdp-types";
 import type { TabInfo } from "./messaging";
 import type { PageIndex } from "./page-index";
 import type { ActionResult } from "@/entrypoints/background/actions";
-import type { Proposal } from "@/lib/agent";
+import type { AgentAction, Proposal } from "@/lib/agent";
+import type { RunOutcome } from "@/lib/agent/loop";
+import type { TokenUsage } from "@/lib/provider";
 
 export type NoteLevel = "info" | "sent" | "recv" | "error";
 
@@ -24,7 +26,22 @@ export type PanelEvent =
       kind: "proposal";
       proposal: Proposal;
       state: "pending" | "executed" | "rejected";
-    });
+    })
+  | (Base & {
+      kind: "step";
+      n: number;
+      url: string;
+      title: string;
+      indexSize: number;
+      totalFound: number;
+      action: AgentAction | null;
+      usage: TokenUsage | null;
+      cached: number;
+      thinkMs: number;
+      outcome: string;
+      state: "thinking" | "acting" | "ok" | "bad";
+    })
+  | (Base & { kind: "summary"; outcome: RunOutcome; task: string });
 
 /** Omit over a union must distribute, or the branches collapse to their overlap. */
 type DistributiveOmit<T, K extends PropertyKey> = T extends unknown ? Omit<T, K> : never;
@@ -42,8 +59,9 @@ interface PanelState {
   setCdp: (cdp: CdpStatus | null) => void;
   note: (level: NoteLevel, text: string) => void;
   push: (event: NewPanelEvent) => void;
-  /** Proposal cards are the one event that changes after it is written. */
+  /** Proposal and step cards are written before their outcome is known. */
   resolveProposal: (id: number, state: "executed" | "rejected") => void;
+  patchStep: (id: number, patch: Partial<Extract<PanelEvent, { kind: "step" }>>) => void;
   clear: () => void;
 }
 
@@ -63,6 +81,10 @@ export const usePanel = create<PanelState>((set) => ({
   note: (level, text) =>
     set((s) => ({ events: [...s.events, { ...stamp(), kind: "note", level, text }] })),
   push: (event) => set((s) => ({ events: [...s.events, { ...stamp(), ...event }] })),
+  patchStep: (id, patch) =>
+    set((s) => ({
+      events: s.events.map((e) => (e.id === id && e.kind === "step" ? { ...e, ...patch } : e)),
+    })),
   resolveProposal: (id, state) =>
     set((s) => ({
       events: s.events.map((e) =>

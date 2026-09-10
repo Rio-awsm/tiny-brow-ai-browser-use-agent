@@ -1,4 +1,5 @@
 import * as cdp from "./cdp";
+import { restrictionFor } from "@/lib/cdp-types";
 import { PANEL_PORT } from "@/lib/messaging";
 import { forgetActivity } from "./settle";
 
@@ -76,10 +77,16 @@ export function isSession(tabId: number): boolean {
 
 export async function startRun(tabId: number, url: string): Promise<void> {
   await endRun(tabId);
-  // Pinned, so the per-action handlers see an existing session and leave it
-  // open rather than detaching underneath the run.
-  await cdp.attach(tabId, url, true);
   entryFor(tabId).session = true;
+
+  // A run may legitimately begin on a page Chrome will not let us attach to —
+  // its first move is then to navigate away, which needs no session. Refusing
+  // to start would make a fresh window a dead end.
+  if (!restrictionFor(url)) {
+    // Pinned, so the per-action handlers see an existing session and leave it
+    // open rather than detaching underneath the run.
+    await cdp.attach(tabId, url, true);
+  }
 }
 
 /** Always safe to call, including when no run is active. */

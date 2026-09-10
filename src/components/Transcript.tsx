@@ -25,6 +25,7 @@ import type { NoteLevel, PanelEvent } from "@/lib/store";
 import type { Screenshot } from "@/lib/cdp-types";
 import type { ActionResult } from "@/entrypoints/background/actions";
 import { ProposalCard } from "@/components/ProposalCard";
+import { RunSummary, StepCard } from "@/components/StepCard";
 
 const NOTE: Record<NoteLevel, { icon: typeof Info; tone: string }> = {
   info: { icon: Info, tone: "text-muted-foreground" },
@@ -70,6 +71,10 @@ export function Transcript({ events, busy, onExecute, onReject }: TranscriptProp
                 return <ActionCard key={e.id} result={e.result} />;
               case "help":
                 return <HelpCard key={e.id} text={e.text} />;
+              case "step":
+                return <StepCard key={e.id} step={e} />;
+              case "summary":
+                return <RunSummary key={e.id} event={e} />;
               case "proposal":
                 return (
                   <ProposalCard

@@ -1,6 +1,7 @@
 import { useState } from "react";
 import {
   ArrowUp,
+  Bot,
   Camera,
   ChevronUp,
   Layers,
@@ -42,6 +43,8 @@ interface Props {
   cursorOn: boolean;
   /** A task is in flight, so an empty input means "propose the next step". */
   canContinue: boolean;
+  autoRun: boolean;
+  onToggleAuto: () => void;
   onChange: (task: string) => void;
   onRun: () => void;
   onStop: () => void;
@@ -56,6 +59,8 @@ export function Composer({
   overlayOn,
   cursorOn,
   canContinue,
+  autoRun,
+  onToggleAuto,
   onChange,
   onRun,
   onStop,
@@ -233,6 +238,24 @@ export function Composer({
             <ChevronUp
               className={cn("size-2.5 transition-transform", tools && "rotate-180")}
             />
+          </button>
+
+          <button
+            onClick={onToggleAuto}
+            title={
+              autoRun
+                ? "Runs to completion on its own"
+                : "Proposes one action at a time for you to approve"
+            }
+            className={cn(
+              "flex items-center gap-1 rounded-md px-1.5 py-0.5 text-[10px] transition-colors",
+              autoRun
+                ? "bg-primary/12 text-primary"
+                : "text-muted-foreground hover:text-foreground",
+            )}
+          >
+            <Bot className="size-2.5" />
+            {autoRun ? "Auto" : "Step"}
           </button>
 
           {busy && (

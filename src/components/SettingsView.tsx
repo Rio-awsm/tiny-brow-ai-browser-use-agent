@@ -31,15 +31,18 @@ import {
   type ProbeResult,
   type ProviderConfig,
 } from "@/lib/provider";
+import { saveAgentSettings, type AgentSettings } from "@/lib/settings";
 
 interface Props {
   config: ProviderConfig;
+  agent: AgentSettings;
   onClose: () => void;
-  onSaved: (config: ProviderConfig) => void;
+  onSaved: (config: ProviderConfig, agent: AgentSettings) => void;
 }
 
-export function SettingsView({ config, onClose, onSaved }: Props) {
+export function SettingsView({ config, agent, onClose, onSaved }: Props) {
   const [draft, setDraft] = useState<ProviderConfig>(config);
+  const [agentDraft, setAgentDraft] = useState<AgentSettings>(agent);
   const [showKey, setShowKey] = useState(false);
   const [advanced, setAdvanced] = useState(false);
   const [extraText, setExtraText] = useState(() => stringify(config.extraParams));
@@ -104,7 +107,8 @@ export function SettingsView({ config, onClose, onSaved }: Props) {
 
     if (granted) {
       await saveConfig(draft);
-      onSaved(draft);
+      await saveAgentSettings(agentDraft);
+      onSaved(draft, agentDraft);
     }
     setBusy(null);
   };
@@ -116,7 +120,9 @@ export function SettingsView({ config, onClose, onSaved }: Props) {
     setBusy(null);
   };
 
-  const dirty = JSON.stringify(draft) !== JSON.stringify(config);
+  const dirty =
+    JSON.stringify(draft) !== JSON.stringify(config) ||
+    JSON.stringify(agentDraft) !== JSON.stringify(agent);
   const blocked = problems.length > 0 || extraError !== null;
 
   return (
@@ -249,6 +255,18 @@ export function SettingsView({ config, onClose, onSaved }: Props) {
               ))}
             </div>
           )}
+
+          <Field label="Step cap" hint="a run stops here rather than looping forever">
+            <Input
+              type="number"
+              min={1}
+              max={200}
+              value={agentDraft.stepCap}
+              onChange={(e) =>
+                setAgentDraft((a) => ({ ...a, stepCap: Number(e.target.value) || 1 }))
+              }
+            />
+          </Field>
 
           <button
             onClick={() => setAdvanced((v) => !v)}
