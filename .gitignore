@@ -1,0 +1,16 @@
+node_modules/
+dist/
+.output/
+.wxt/
+*.local
+
+# Secrets — the harness reads .env; it must never be committed.
+.env
+.env.*
+!.env.example
+
+# Harness output
+harness-results/
+
+# Kept ignored per your original .gitignore — say the word and I will commit the guide.
+docs/

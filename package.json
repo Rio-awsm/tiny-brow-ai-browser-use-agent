@@ -1,0 +1,26 @@
+{
+  "name": "tiny-brow",
+  "version": "0.0.0",
+  "private": true,
+  "type": "module",
+  "description": "A bring-your-own-key browser agent that lives in a Chrome side panel and drives the current tab.",
+  "license": "MIT",
+  "engines": {
+    "node": ">=22"
+  },
+  "scripts": {
+    "harness": "tsx harness/index.ts",
+    "verify:tasks": "tsx harness/index.ts --verify-tasks",
+    "check:secrets": "tsx scripts/check-secrets.ts",
+    "typecheck": "tsc --noEmit",
+    "check": "npm run typecheck && npm run verify:tasks && npm run check:secrets"
+  },
+  "devDependencies": {
+    "@types/node": "^22.15.3",
+    "tsx": "^4.19.2",
+    "typescript": "^5.7.3"
+  },
+  "dependencies": {
+    "zod": "^4.0.5"
+  }
+}
