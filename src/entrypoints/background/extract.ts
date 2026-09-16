@@ -471,26 +471,58 @@ function extractPage(indexCap: number, textCap: number, descriptorCap: number) {
   function shapeOf(node: Element): string {
     let s = shapeCache.get(node);
     if (s === undefined) {
-      const kids = Array.from(node.children).slice(0, 12).map((c) => c.tagName);
+      // Through wrappers, so a div slipped around one child leaves the shape alone.
+      const kids = Array.from(node.children).slice(0, 12).map((c) => throughWrappers(c).tagName);
       s = `${node.tagName}>${kids.join(",")}`;
       shapeCache.set(node, s);
     }
     return s;
   }
 
-  /** The nearest ancestor that sits among two or more siblings of the same shape. */
+  /** A div or span holding exactly one element and no text of its own. */
+  function isWrapper(node: Element): boolean {
+    const tag = node.tagName.toLowerCase();
+    if ((tag !== "div" && tag !== "span") || node.children.length !== 1) return false;
+    return Array.from(node.childNodes).every((c) => c.nodeType !== 3 || !(c.textContent ?? "").trim());
+  }
+
+  function throughWrappers(node: Element): Element {
+    let n = node;
+    let guard = 0;
+    while (guard++ < 8 && isWrapper(n)) n = n.children[0]!;
+    return n;
+  }
+
+  /**
+   * The nearest ancestor that sits among two or more siblings of the same shape:
+   * a result card, an inbox row. Lone wrappers are looked through, so wrapping
+   * one card in a div does not take it out of its list. A pair is not enough: on
+   * Amazon the price row and the rating row inside every card would each become
+   * a "card" that reads the same in every result.
+   */
   function repeatedItem(el: Element): Element | null {
     let node: Element | null = el.parentElement;
     let guard = 0;
     while (node && guard++ < 10) {
       const tag = node.tagName.toLowerCase();
       if (tag === "body" || tag === "html" || tag === "main") return null;
-      const parent = node.parentElement;
+
+      let level: Element = node;
+      while (level.parentElement && isWrapper(level.parentElement)) level = level.parentElement;
+      const parent = level.parentElement;
       if (!parent) return null;
-      const shape = shapeOf(node);
+
+      const core = throughWrappers(node);
+      // Two buttons side by side are not a list of cards; a card holds more than the control.
+      if (core === el) {
+        node = parent;
+        continue;
+      }
+      const shape = shapeOf(core);
       let same = 0;
       for (const sibling of Array.from(parent.children)) {
-        if (sibling.tagName === node.tagName && shapeOf(sibling) === shape) same++;
+        const other = throughWrappers(sibling);
+        if (other.tagName === core.tagName && shapeOf(other) === shape) same++;
         if (same >= 3) return node;
       }
       node = parent;
@@ -557,6 +589,63 @@ function extractPage(indexCap: number, textCap: number, descriptorCap: number) {
     const above = ancestorPath(parentOf(el));
     const own = segmentOf(el, true);
     return above ? `${above}>${own}` : own;
+  }
+
+  function inheritsPointer(el: Element, doc: Document): boolean {
+    const parent = parentOf(el);
+    if (!parent) return false;
+    try {
+      return (doc.defaultView ?? window).getComputedStyle(parent).cursor === "pointer";
+    } catch {
+      return false;
+    }
+  }
+
+  function insideControl(el: Element): boolean {
+    let node = parentOf(el);
+    let guard = 0;
+    while (node && guard++ < 30) {
+      if (isInteractiveByMarkup(node)) return true;
+      node = parentOf(node);
+    }
+    return false;
+  }
+
+  const TRACKING_PARAM =
+    /^(utm_.*|ref|ref_|qid|sr|crid|sprefix|dib|dib_tag|pd_rd_.*|pf_rd_.*|content-id|fbclid|gclid|_encoding|spm)$/i;
+
+  /**
+   * Where a link goes, stripped of what changes between visits: tracking
+   * parameters, Amazon's `/ref=` path segment, and the fragment unless the link
+   * only moves within this page. Same-origin links drop the origin, so a
+   * fixture served on another port reads the same.
+   */
+  function hrefFor(el: Element): string {
+    const tag = el.tagName.toLowerCase();
+    const raw = tag === "a" || tag === "area" ? el.getAttribute("href") : null;
+    if (!raw) return "";
+
+    const doc = el.ownerDocument;
+    let url: URL;
+    let here: URL;
+    try {
+      url = new URL(raw, doc.baseURI);
+      here = new URL(doc.location.href);
+    } catch {
+      return "";
+    }
+    if (url.protocol !== "http:" && url.protocol !== "https:") return "";
+
+    const samePage =
+      url.origin === here.origin && url.pathname === here.pathname && url.search === here.search;
+    url.pathname = url.pathname.replace(/\/ref=[^/]*/g, "");
+    for (const key of Array.from(url.searchParams.keys())) {
+      if (TRACKING_PARAM.test(key)) url.searchParams.delete(key);
+    }
+    url.searchParams.sort();
+
+    const origin = url.origin === here.origin ? "" : url.origin;
+    return `${origin}${url.pathname}${url.search}${samePage ? url.hash : ""}`;
   }
 
   const round2 = (n: number) => (Number.isFinite(n) ? Math.round(n * 100) / 100 : 0);
@@ -665,6 +754,11 @@ function extractPage(indexCap: number, textCap: number, descriptorCap: number) {
       }
 
       if (!byMarkup && style.cursor !== "pointer") continue;
+      // Text inside a link inherits its pointer cursor without being a control
+      // of its own: the brackets of every Wikipedia citation, a keycap label.
+      // A styled button inside a focusable scroll region sets its own cursor,
+      // so only an inherited one disqualifies.
+      if (!byMarkup && inheritsPointer(el, doc) && insideControl(el)) continue;
 
       const rect = el.getBoundingClientRect();
       if (!isVisible(el, style, rect)) continue;
@@ -745,14 +839,15 @@ function extractPage(indexCap: number, textCap: number, descriptorCap: number) {
   const docW = Math.max(1, docEl ? docEl.scrollWidth : vw);
   const docH = Math.max(1, docEl ? docEl.scrollHeight : vh);
 
-  const descriptors = all
+  const described = all
     .slice()
     .sort((a, b) =>
       a.inViewport === b.inViewport ? a.order - b.order : a.inViewport ? -1 : 1,
     )
     .slice(0, descriptorCap)
-    .sort((a, b) => a.order - b.order)
-    .map((e) => {
+    .sort((a, b) => a.order - b.order);
+
+  const descriptors = described.map((e) => {
       const name = clip(accName(e.el, e.role), 120);
       const heading = headingFor(e.el);
       const itemEl = repeatedItem(e.el);
@@ -777,6 +872,7 @@ function extractPage(indexCap: number, textCap: number, descriptorCap: number) {
           vpY: round2(cy / vh),
           size: sizeBucket(e.w, e.h),
         },
+        href: hrefFor(e.el),
         pathNorm: pathFor(e.el),
         frame: e.frame,
       };
@@ -787,6 +883,8 @@ function extractPage(indexCap: number, textCap: number, descriptorCap: number) {
   // them has to run in this same world.
   const store = (window as unknown as Record<string, any>).__tinyBrow ?? {};
   store.els = ranked.map((e) => e.el);
+  // Every described element, so a match past the cap can still be acted on.
+  store.all = described.map((e) => e.el);
   store.meta = elements.map((e) => ({ i: e.i, role: e.role, label: e.label }));
   (window as unknown as Record<string, any>).__tinyBrow = store;
 

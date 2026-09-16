@@ -67,7 +67,9 @@ for (const snap of snapshots) {
       const doubled = [...page.slice(0, k + 1), copy, ...page.slice(k + 1)];
       const twin = matchElement(target, doubled, { scope, source: page });
       cases++;
-      if (twin.outcome !== "ambiguous") {
+      // A copied link goes where the original went, so either one is the right click.
+      const sameDestination = Boolean(target.href) && twin.outcome === "matched" && (twin.index === k || twin.index === k + 1);
+      if (twin.outcome !== "ambiguous" && !sameDestination) {
         failures.push(`${tag}\n      duplicated: want ambiguous, got ${verdict(twin)}${twin.index !== null ? ` #${twin.index}` : ""}`);
       }
     });
@@ -166,6 +168,14 @@ const dellCart = shop.findIndex((d) => d.name === "Add to cart" && d.context.ite
     r.outcome === "matched" && reordered[r.index!] === target,
     verdict(r),
   );
+}
+
+{
+  const deals = shop.findIndex((d) => d.name === "Today's Deals");
+  const elsewhere = { ...shop[deals]!, landmarks: ["footer"], pathNorm: "footer>a[4]", geom: { ...shop[deals]!.geom, docY: 0.9 } };
+  const page = shop.filter((_, i) => i !== deals).concat({ ...elsewhere, href: "/deals-archive" });
+  const r = matchElement(shop[deals]!, page, { source: shop });
+  expect("a same-named link to a different destination is not the target", r.outcome !== "matched", verdict(r));
 }
 
 // ---- report ----

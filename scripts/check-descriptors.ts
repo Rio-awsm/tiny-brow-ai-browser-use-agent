@@ -12,9 +12,7 @@
  *   npm run check:descriptors -- --update   (rewrite fixtures/descriptors after an intended change)
  */
 
-import { spawn, type ChildProcess } from "node:child_process";
-import { existsSync, mkdirSync, mkdtempSync, readFileSync, readdirSync, rmSync, writeFileSync } from "node:fs";
-import { tmpdir } from "node:os";
+import { existsSync, mkdirSync, readFileSync, readdirSync, writeFileSync } from "node:fs";
 import { dirname, join, relative } from "node:path";
 import {
   DESCRIPTOR_CAP,
@@ -25,7 +23,8 @@ import {
   type ElementDescriptor,
   type PageIndex,
 } from "../src/lib/page-index";
-import { extractFunction, readBundle } from "./lib/bundle";
+import { extractorExpression } from "./lib/bundle";
+import { launchBrowser } from "./lib/chrome";
 import { FIXTURE_ROOT, serveFixturesEphemeral } from "./lib/fixture-server";
 import { snapshotPath } from "./lib/snapshots";
 
@@ -56,6 +55,24 @@ const EXPECT: Expectation[] = [
       eq("nameNorm", d.nameNorm, "cart") ??
       eq("stable", d.stable, { "data-testid": "nav-cart" }) ??
       eq("landmarks", d.landmarks, ["header"]),
+  },
+  {
+    page: "pages/shop.html",
+    what: "href loses tracking params, the /ref= segment, the origin and an off-page fragment",
+    find: (d) => d.name === "Logitech M235 Wireless Mouse, 1000 DPI",
+    check: (d) => eq("href", d.href, "/dp/B07W4DHNBS?keywords=wireless+mouse"),
+  },
+  {
+    page: "pages/shop.html",
+    what: "an in-page link keeps its fragment",
+    find: (d) => d.name === "Dell MS116 Optical Wired Mouse",
+    check: (d) => eq("href", d.href, "/pages/shop.html#p2"),
+  },
+  {
+    page: "pages/shop.html",
+    what: "a styled control inside a focusable scroll region is still a control",
+    find: (d) => d.name === "See more results",
+    check: (d) => eq("tag", d.tag, "span"),
   },
   {
     page: "pages/shop.html",
@@ -184,6 +201,12 @@ const EXPECT: Expectation[] = [
   },
   {
     page: "pages/article.html",
+    what: "a citation is one link, named by its whole text",
+    find: (d) => d.name === "[1]",
+    check: (d) => eq("tag", d.tag, "a") ?? eq("href", d.href, "/pages/article.html#ref1"),
+  },
+  {
+    page: "pages/article.html",
     what: "Parsoid node id dropped",
     find: (d) => d.name === "Sulphur",
     check: (d) => eq("stable", d.stable, {}),
@@ -203,16 +226,7 @@ const dump = args.includes("--dump");
 const update = args.includes("--update");
 const targets = args.filter((a) => !a.startsWith("--"));
 
-const bundle = readBundle();
-// Minified, so found by what it returns rather than by name.
-const source = [...bundle.matchAll(/\(\$\{([\w$]+)\.toString\(\)\}\)/g)]
-  .map((m) => extractFunction(bundle, m[1]!))
-  .find((fn) => fn?.includes("descriptors:") && fn.includes("totalFound:"));
-if (!source) {
-  console.error("\n  could not find the injected indexer in the bundle\n");
-  process.exit(1);
-}
-const expression = `(${source})(${INDEX_CAP}, ${TEXT_CAP}, ${DESCRIPTOR_CAP})`;
+const expression = extractorExpression(INDEX_CAP, TEXT_CAP, DESCRIPTOR_CAP);
 
 const fixtures = await serveFixturesEphemeral();
 const browser = await launchBrowser();
@@ -242,6 +256,9 @@ try {
       if (problem) fail(`${path}: ${exp.what} — ${problem}`);
     }
     if (expected.length > 0) console.log(`    ${expected.length} expectations checked`);
+    // Text inside a link inherits its pointer cursor; it must not become a control of its own.
+    const inherited = result.first.descriptors.filter((d) => d.tag === "span" && /^[[\]]$/.test(d.name));
+    if (inherited.length > 0) fail(`${path}: ${inherited.length} citation brackets indexed as controls`);
 
     // Repeated controls must stay distinguishable by path, or the matcher's
     // structural signal cannot separate one result card from the next.
@@ -294,9 +311,9 @@ interface Inspection {
 async function inspect(url: string, reload: boolean): Promise<Inspection> {
   const tab = await browser.open(url, reload ? 150 : 2500);
   try {
-    const first = await tab.evaluate();
+    const first = await tab.evaluate<PageIndex>(expression);
     if (reload) await tab.reload(150);
-    const second = await tab.evaluate();
+    const second = await tab.evaluate<PageIndex>(expression);
     return { first, second, reloaded: reload };
   } finally {
     await tab.close();
@@ -386,160 +403,4 @@ function fail(message: string) {
 
 function pct(n: number) {
   return `${Math.round(n * 100)}%`;
-}
-
-// ---- a minimal CDP client over the browser's WebSocket ----
-
-interface Tab {
-  evaluate: () => Promise<PageIndex>;
-  reload: (settleMs: number) => Promise<void>;
-  close: () => Promise<void>;
-}
-
-interface Browser {
-  open: (url: string, settleMs: number) => Promise<Tab>;
-  close: () => Promise<void>;
-}
-
-function findBrowser(): string {
-  const env = process.env.CHROME_PATH;
-  if (env) return env;
-  const local = process.env.LOCALAPPDATA ?? "";
-  const candidates = [
-    "C:\\Program Files\\Google\\Chrome\\Application\\chrome.exe",
-    "C:\\Program Files (x86)\\Google\\Chrome\\Application\\chrome.exe",
-    join(local, "Google\\Chrome\\Application\\chrome.exe"),
-    "C:\\Program Files (x86)\\Microsoft\\Edge\\Application\\msedge.exe",
-    "C:\\Program Files\\Microsoft\\Edge\\Application\\msedge.exe",
-    "/Applications/Google Chrome.app/Contents/MacOS/Google Chrome",
-    "/Applications/Microsoft Edge.app/Contents/MacOS/Microsoft Edge",
-    "/usr/bin/google-chrome",
-    "/usr/bin/google-chrome-stable",
-    "/usr/bin/chromium",
-    "/usr/bin/chromium-browser",
-  ];
-  const found = candidates.find((p) => existsSync(p));
-  if (!found) {
-    console.error("\n  no Chrome or Edge found — set CHROME_PATH to a Chromium binary\n");
-    process.exit(1);
-  }
-  return found;
-}
-
-async function launchBrowser(): Promise<Browser> {
-  const profile = mkdtempSync(join(tmpdir(), "tiny-brow-descriptors-"));
-  const child: ChildProcess = spawn(
-    findBrowser(),
-    [
-      "--headless=new",
-      "--remote-debugging-port=0",
-      `--user-data-dir=${profile}`,
-      "--no-first-run",
-      "--no-default-browser-check",
-      "--disable-extensions",
-      "--hide-scrollbars",
-      "--window-size=1280,800",
-      "about:blank",
-    ],
-    { stdio: ["ignore", "ignore", "pipe"] },
-  );
-
-  const wsUrl = await new Promise<string>((resolve, reject) => {
-    let buffer = "";
-    const timer = setTimeout(() => reject(new Error("browser did not start within 20s")), 20_000);
-    child.stderr!.on("data", (chunk: Buffer) => {
-      buffer += chunk.toString();
-      const m = buffer.match(/DevTools listening on (ws:\/\/\S+)/);
-      if (m) {
-        clearTimeout(timer);
-        resolve(m[1]!);
-      }
-    });
-    child.once("exit", (code) => reject(new Error(`browser exited early (${code})`)));
-  });
-
-  const socket = new WebSocket(wsUrl);
-  await new Promise((resolve, reject) => {
-    socket.addEventListener("open", resolve, { once: true });
-    socket.addEventListener("error", reject, { once: true });
-  });
-
-  let nextId = 1;
-  const pending = new Map<number, { resolve: (v: any) => void; reject: (e: Error) => void }>();
-  const waiters: { sessionId: string; method: string; resolve: () => void }[] = [];
-
-  socket.addEventListener("message", (event) => {
-    const msg = JSON.parse(String(event.data));
-    if (msg.id !== undefined) {
-      const p = pending.get(msg.id);
-      pending.delete(msg.id);
-      if (msg.error) p?.reject(new Error(msg.error.message));
-      else p?.resolve(msg.result);
-      return;
-    }
-    const at = waiters.findIndex((w) => w.sessionId === msg.sessionId && w.method === msg.method);
-    if (at >= 0) waiters.splice(at, 1)[0]!.resolve();
-  });
-
-  const send = (method: string, params: object = {}, sessionId?: string): Promise<any> =>
-    new Promise((resolve, reject) => {
-      const id = nextId++;
-      pending.set(id, { resolve, reject });
-      socket.send(JSON.stringify({ id, method, params, sessionId }));
-    });
-
-  const waitFor = (sessionId: string, method: string, ms: number) =>
-    new Promise<void>((resolve, reject) => {
-      const timer = setTimeout(() => reject(new Error(`timed out waiting for ${method}`)), ms);
-      waiters.push({ sessionId, method, resolve: () => (clearTimeout(timer), resolve()) });
-    });
-
-  const sleep = (ms: number) => new Promise((r) => setTimeout(r, ms));
-
-  return {
-    async open(url, settleMs) {
-      const { targetId } = await send("Target.createTarget", { url: "about:blank" });
-      const { sessionId } = await send("Target.attachToTarget", { targetId, flatten: true });
-      await send("Emulation.setDeviceMetricsOverride", {
-        width: 1280, height: 800, deviceScaleFactor: 1, mobile: false,
-      }, sessionId);
-      await send("Page.enable", {}, sessionId);
-
-      const loaded = waitFor(sessionId, "Page.loadEventFired", 30_000);
-      await send("Page.navigate", { url }, sessionId);
-      await loaded;
-      await sleep(settleMs);
-
-      return {
-        async evaluate() {
-          const { result, exceptionDetails } = await send(
-            "Runtime.evaluate",
-            { expression, returnByValue: true },
-            sessionId,
-          );
-          if (exceptionDetails) {
-            throw new Error(exceptionDetails.exception?.description ?? exceptionDetails.text);
-          }
-          return result.value as PageIndex;
-        },
-        async reload(ms) {
-          const again = waitFor(sessionId, "Page.loadEventFired", 30_000);
-          await send("Page.reload", { ignoreCache: true }, sessionId);
-          await again;
-          await sleep(ms);
-        },
-        async close() {
-          await send("Target.closeTarget", { targetId }).catch(() => {});
-        },
-      };
-    },
-    async close() {
-      socket.close();
-      const exited = new Promise((resolve) => child.once("exit", resolve));
-      child.kill();
-      await exited;
-      // Chrome can hold profile files for a moment after it exits.
-      rmSync(profile, { recursive: true, force: true, maxRetries: 10, retryDelay: 200 });
-    },
-  };
 }

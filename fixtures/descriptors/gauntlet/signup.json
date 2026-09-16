@@ -82,6 +82,7 @@
         "vpY": 0.21,
         "size": "l"
       },
+      "href": "",
       "pathNorm": "main>input[1]",
       "frame": ""
     },
@@ -112,6 +113,7 @@
         "vpY": 0.31,
         "size": "l"
       },
+      "href": "",
       "pathNorm": "main>input[2]",
       "frame": ""
     },
@@ -142,6 +144,7 @@
         "vpY": 0.4,
         "size": "l"
       },
+      "href": "",
       "pathNorm": "main>input[3]",
       "frame": ""
     },
@@ -168,6 +171,7 @@
         "vpY": 0.46,
         "size": "s"
       },
+      "href": "/gauntlet/",
       "pathNorm": "main>p>a",
       "frame": ""
     }

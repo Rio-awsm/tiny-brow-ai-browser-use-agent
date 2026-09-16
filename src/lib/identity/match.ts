@@ -11,9 +11,10 @@ import type { ElementDescriptor } from "@/lib/page-index";
  *   near       what surrounds it: landmarks, heading, the card it sits in
  *   position   where it is: path, ordinal, geometry
  *
- * A match needs an anchor: a unique test id, id or name attribute, or an equal
- * accessible name. Neighbourhood never anchors — every link in a paragraph
- * shares it, and "Add to wish list" shares a card with "Add to cart". Nor does a
+ * A match needs an anchor: a unique test id, id, name attribute or link
+ * destination, or an equal accessible name. Neighbourhood never anchors — every
+ * link in a paragraph shares it, and "Add to wish list" shares a card with
+ * "Add to cart". Nor does a
  * similar name: "node debug adapter" is one letter from "mono debug adapter",
  * and "Satish Dhawan Space Centre" scores against "Indian Space Research
  * Organisation" like "Add to bag" does against "Add to cart". An untagged control
@@ -24,6 +25,9 @@ import type { ElementDescriptor } from "@/lib/page-index";
  * duplicate a button and the copy inherits the original's slot, delete a result
  * card and the next one slides into it. For the same reason, an element that
  * already had a lookalike on the page it was recorded from is never matched.
+ * The one exception is links whose lookalikes all go exactly where the target
+ * went: "Today's Deals" in the header and again in the menu. Either is the right
+ * click, so that tie is not ambiguous.
  */
 
 export type MatchOutcome = "matched" | "ambiguous" | "not_found";
@@ -32,6 +36,7 @@ export type Signal =
   | "testid"
   | "id"
   | "name_attr"
+  | "href"
   | "name_exact"
   | "name_norm"
   | "name_fuzzy"
@@ -45,6 +50,8 @@ export type Signal =
   | "name_conflict"
   | "context_conflict"
   | "heading_conflict"
+  | "context_missing"
+  | "href_conflict"
   | "landmark_conflict";
 
 export type Scope = "within_run" | "across_runs";
@@ -53,6 +60,7 @@ export interface MatchWeights {
   testid: number;
   id: number;
   nameAttr: number;
+  href: number;
   nameExact: number;
   nameNorm: number;
   /** Multiplied by similarity. */
@@ -68,13 +76,22 @@ export interface MatchWeights {
   nameConflict: number;
   contextConflict: number;
   headingConflict: number;
+  contextMissing: number;
+  hrefConflict: number;
   landmarkConflict: number;
 }
 
+/**
+ * Tuned against `npm run check:drift -- --all --record` and `npm run tune:matcher`,
+ * never by feel. The sweep also shows where the cliffs are: an exact name worth
+ * 60, landmarks worth 37.5, or a card conflict softened to -20 each produce wrong
+ * matches. Change a weight only with a rerun of both.
+ */
 export const DEFAULT_WEIGHTS: MatchWeights = {
   testid: 50,
   id: 30,
   nameAttr: 25,
+  href: 45,
   nameExact: 40,
   nameNorm: 32,
   nameFuzzy: 20,
@@ -89,6 +106,8 @@ export const DEFAULT_WEIGHTS: MatchWeights = {
   nameConflict: -20,
   contextConflict: -40,
   headingConflict: -15,
+  contextMissing: -40,
+  hrefConflict: -15,
   landmarkConflict: -12,
 };
 
@@ -159,14 +178,14 @@ export interface MatchResult {
 
 /** Everything but position. */
 const IDENTITY: ReadonlySet<Signal> = new Set<Signal>([
-  "testid", "id", "name_attr", "name_exact", "name_norm", "name_fuzzy", "landmarks",
+  "testid", "id", "name_attr", "href", "name_exact", "name_norm", "name_fuzzy", "landmarks",
   "landmark_suffix", "context", "role_compatible", "name_conflict", "context_conflict",
-  "heading_conflict", "landmark_conflict",
+  "heading_conflict", "context_missing", "landmark_conflict", "href_conflict",
 ]);
 
 /** Strongest first; breaks ties when choosing a rung. */
 const RUNG_ORDER: Signal[] = [
-  "testid", "name_exact", "name_norm", "id", "name_attr", "landmarks", "path",
+  "testid", "name_exact", "name_norm", "id", "href", "name_attr", "landmarks", "path",
   "name_fuzzy", "context", "landmark_suffix", "ordinal", "geometry",
 ];
 
@@ -242,7 +261,7 @@ function evaluate(
   const nameSim = similarities(candidates, "nameNorm", target.nameNorm);
   const itemSim = similarities(candidates, "context.itemNorm", target.context.itemNorm);
   const targetOrdinal = options.source ? ordinalIn(options.source, target) : null;
-  const unique = uniqueStable(target, candidates, options.source);
+  const unique = identifyingAttributes(target, candidates, options.source);
 
   const ranked: ScoredCandidate[] = [];
 
@@ -257,6 +276,13 @@ function evaluate(
     if (unique.testid.some((k) => target.stable[k] === c.stable[k])) s.testid = w.testid;
     if (unique.id && target.stable.id === c.stable.id) s.id = w.id;
     if (unique.name && target.stable.name === c.stable.name) s.name_attr = w.nameAttr;
+    if (target.href && c.href) {
+      if (target.href !== c.href) {
+        if (!s.testid) s.href_conflict = w.hrefConflict;
+      } else if (unique.href) {
+        s.href = w.href;
+      }
+    }
 
     if (target.name && target.name === c.name) {
       s.name_exact = w.nameExact;
@@ -274,16 +300,31 @@ function evaluate(
       else if (!s.testid) s.landmark_conflict = w.landmarkConflict;
     }
 
-    // Like with like: a card against a card, a heading against a heading. A
-    // rival outside any card must not borrow credit from the page heading.
+    // Credit is like with like: a card against a card, a heading against a
+    // heading, so a rival outside any card cannot borrow it from the page
+    // heading. A different heading counts against a match either way — two
+    // result cards whose price blocks read alike still sit under different titles.
     const targetItem = Boolean(target.context.itemNorm);
+    const headings = Boolean(target.context.headingNorm && c.context.headingNorm);
     if (targetItem && c.context.itemNorm) {
       const sim = target.context.itemNorm === c.context.itemNorm ? 1 : (itemSim.get(index) ?? 0);
-      if (sim >= tuning.itemMatchAt) s.context = w.context;
-      else if (sim < tuning.itemConflictBelow && !s.testid) s.context_conflict = w.contextConflict;
-    } else if (!targetItem && !c.context.itemNorm && target.context.headingNorm && c.context.headingNorm) {
+      // Between clearly the same card and clearly another, the heading decides:
+      // two product cards can share most of their words and still differ in title.
+      const unsure = sim >= tuning.itemConflictBelow && sim < tuning.itemMatchAt;
+      if (sim >= tuning.itemMatchAt || (unsure && headings && target.context.headingNorm === c.context.headingNorm)) {
+        s.context = w.context;
+      } else if ((sim < tuning.itemConflictBelow || (unsure && headings)) && !s.testid) {
+        s.context_conflict = w.contextConflict;
+      }
+    } else if (!targetItem && !c.context.itemNorm && headings) {
       if (target.context.headingNorm === c.context.headingNorm) s.context = w.context;
-      else if (!s.testid) s.heading_conflict = w.headingConflict;
+    } else if (targetItem && !c.context.itemNorm && !s.testid) {
+      // The target sat in a card and this does not: the other rows of a list
+      // stop reading as a list once one of three is gone.
+      s.context_missing = w.contextMissing;
+    }
+    if (headings && target.context.headingNorm !== c.context.headingNorm && !s.testid && !s.context_conflict) {
+      s.heading_conflict = w.headingConflict;
     }
 
     if (target.pathNorm && target.pathNorm === c.pathNorm) {
@@ -301,7 +342,9 @@ function evaluate(
 
     let score = 0;
     let identity = 0;
-    const anchored = Boolean(s.testid || s.id || s.name_attr || s.name_exact || s.name_norm);
+    // Same words, different destination: a different link. A name cannot vouch for it.
+    const named = Boolean(s.name_exact || s.name_norm) && !s.href_conflict;
+    const anchored = Boolean(s.testid || s.id || s.name_attr || s.href) || named;
     for (const [signal, value] of Object.entries(s) as [Signal, number][]) {
       score += value;
       if (IDENTITY.has(signal)) identity += value;
@@ -319,7 +362,12 @@ function evaluate(
     return { outcome: "not_found", match: null, index: null, score: ranked[0]?.score ?? 0, margin: 0, rung: null, ranked };
   }
 
-  const others = ranked.filter((r) => r !== best);
+  // Links that go exactly where the target went are interchangeable with the winner.
+  const twin = (r: ScoredCandidate) =>
+    Boolean(target.href) &&
+    candidates[best.index]!.href === target.href &&
+    candidates[r.index]!.href === target.href;
+  const others = ranked.filter((r) => r !== best && !twin(r));
   const runnerUp = others[0];
   const margin = round(best.score - (runnerUp?.score ?? 0));
   const lookalike = others.find((r) => r.identity >= best.identity);
@@ -343,20 +391,26 @@ function evaluate(
 /**
  * Which of the target's stable attributes identify one element. A value shared
  * by several — `data-qa="thread"` on every inbox row, `name="size"` on every
- * radio — is a class, not an identity, and scores nothing.
+ * radio, `/` on the logo and on "Home" — is a class, not an identity, and
+ * scores nothing.
  */
-function uniqueStable(
+export function identifyingAttributes(
   target: ElementDescriptor,
   candidates: ElementDescriptor[],
   source: ElementDescriptor[] | undefined,
-): { testid: string[]; id: boolean; name: boolean } {
-  const once = (key: string) => {
-    const value = target.stable[key];
+): { testid: string[]; id: boolean; name: boolean; href: boolean } {
+  const once = (read: (d: ElementDescriptor) => string | undefined) => {
+    const value = read(target);
     if (!value) return false;
-    const count = (list: ElementDescriptor[]) => list.filter((d) => d.stable[key] === value).length;
+    const count = (list: ElementDescriptor[]) => list.filter((d) => read(d) === value).length;
     return count(candidates) <= 1 && (!source || count(source) <= 1);
   };
-  return { testid: TESTID_KEYS.filter(once), id: once("id"), name: once("name") };
+  return {
+    testid: TESTID_KEYS.filter((k) => once((d) => d.stable[k])),
+    id: once((d) => d.stable.id),
+    name: once((d) => d.stable.name),
+    href: once((d) => d.href),
+  };
 }
 
 /** The positive signal the winner leads the rival on by the most. */

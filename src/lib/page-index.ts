@@ -54,6 +54,8 @@ export interface ElementDescriptor {
     vpY: number;
     size: "xs" | "s" | "m" | "l" | "xl";
   };
+  /** Where a link goes, normalised; empty for anything that is not a link. */
+  href: string;
   /** Tag chain with nth-of-type, skipping anonymous div and span wrappers. */
   pathNorm: string;
   frame: string;

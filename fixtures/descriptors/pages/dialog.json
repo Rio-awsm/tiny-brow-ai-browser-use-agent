@@ -67,6 +67,7 @@
         "vpY": 0.42,
         "size": "s"
       },
+      "href": "",
       "pathNorm": "div[2]>div>button",
       "frame": ""
     },
@@ -95,6 +96,7 @@
         "vpY": 0.56,
         "size": "s"
       },
+      "href": "",
       "pathNorm": "div[2]>div>button[1]",
       "frame": ""
     },
@@ -124,6 +126,7 @@
         "vpY": 0.56,
         "size": "m"
       },
+      "href": "",
       "pathNorm": "div[2]>div>button[2]",
       "frame": ""
     }

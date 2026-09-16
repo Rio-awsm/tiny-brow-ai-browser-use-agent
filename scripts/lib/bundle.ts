@@ -13,6 +13,22 @@ export function readBundle(): string {
 }
 
 /**
+ * The injected page indexer, as an expression ready for `Runtime.evaluate`.
+ * The bundle is minified, so it is found by what it returns rather than by name.
+ */
+export function extractorExpression(indexCap: number, textCap: number, descriptorCap: number): string {
+  const bundle = readBundle();
+  const source = [...bundle.matchAll(/\(\$\{([\w$]+)\.toString\(\)\}\)/g)]
+    .map((m) => extractFunction(bundle, m[1]!))
+    .find((fn) => fn?.includes("descriptors:") && fn.includes("totalFound:"));
+  if (!source) {
+    console.error("\n  could not find the injected indexer in the bundle\n");
+    process.exit(1);
+  }
+  return `(${source})(${indexCap}, ${textCap}, ${descriptorCap})`;
+}
+
+/**
  * Brace-matches a function declaration out of the bundle.
  *
  * Minified names repeat across scopes, so `function S(` can also be a helper

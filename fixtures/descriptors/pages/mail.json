@@ -133,45 +133,6 @@
     },
     {
       "i": 10,
-      "tag": "span",
-      "role": "span",
-      "label": "Priya Raman",
-      "x": 245,
-      "y": 89,
-      "w": 180,
-      "h": 20,
-      "inViewport": true,
-      "frame": "",
-      "note": ""
-    },
-    {
-      "i": 11,
-      "tag": "span",
-      "role": "span",
-      "label": "Quarterly numbers — draft attached",
-      "x": 425,
-      "y": 89,
-      "w": 763,
-      "h": 20,
-      "inViewport": true,
-      "frame": "",
-      "note": ""
-    },
-    {
-      "i": 12,
-      "tag": "span",
-      "role": "span",
-      "label": "10:42",
-      "x": 1188,
-      "y": 89,
-      "w": 80,
-      "h": 20,
-      "inViewport": true,
-      "frame": "",
-      "note": ""
-    },
-    {
-      "i": 13,
       "tag": "div",
       "role": "listitem",
       "label": "☆ GitHub [tiny-brow] New issue opened 0…",
@@ -184,7 +145,7 @@
       "note": ""
     },
     {
-      "i": 14,
+      "i": 11,
       "tag": "button",
       "role": "button",
       "label": "Not starred",
@@ -197,46 +158,7 @@
       "note": ""
     },
     {
-      "i": 15,
-      "tag": "span",
-      "role": "span",
-      "label": "GitHub",
-      "x": 245,
-      "y": 130,
-      "w": 180,
-      "h": 20,
-      "inViewport": true,
-      "frame": "",
-      "note": ""
-    },
-    {
-      "i": 16,
-      "tag": "span",
-      "role": "span",
-      "label": "[tiny-brow] New issue opened",
-      "x": 425,
-      "y": 130,
-      "w": 763,
-      "h": 20,
-      "inViewport": true,
-      "frame": "",
-      "note": ""
-    },
-    {
-      "i": 17,
-      "tag": "span",
-      "role": "span",
-      "label": "09:15",
-      "x": 1188,
-      "y": 130,
-      "w": 80,
-      "h": 20,
-      "inViewport": true,
-      "frame": "",
-      "note": ""
-    },
-    {
-      "i": 18,
+      "i": 12,
       "tag": "div",
       "role": "listitem",
       "label": "★ IRCTC Booking confirmed: PNR 4521 Yes…",
@@ -249,7 +171,7 @@
       "note": ""
     },
     {
-      "i": 19,
+      "i": 13,
       "tag": "button",
       "role": "button",
       "label": "Starred",
@@ -262,46 +184,7 @@
       "note": ""
     },
     {
-      "i": 20,
-      "tag": "span",
-      "role": "span",
-      "label": "IRCTC",
-      "x": 245,
-      "y": 171,
-      "w": 180,
-      "h": 20,
-      "inViewport": true,
-      "frame": "",
-      "note": ""
-    },
-    {
-      "i": 21,
-      "tag": "span",
-      "role": "span",
-      "label": "Booking confirmed: PNR 4521",
-      "x": 425,
-      "y": 171,
-      "w": 763,
-      "h": 20,
-      "inViewport": true,
-      "frame": "",
-      "note": ""
-    },
-    {
-      "i": 22,
-      "tag": "span",
-      "role": "span",
-      "label": "Yesterday",
-      "x": 1188,
-      "y": 171,
-      "w": 80,
-      "h": 20,
-      "inViewport": true,
-      "frame": "",
-      "note": ""
-    },
-    {
-      "i": 23,
+      "i": 14,
       "tag": "input",
       "role": "textbox",
       "label": "Write a reply",
@@ -314,7 +197,7 @@
       "note": ""
     },
     {
-      "i": 24,
+      "i": 15,
       "tag": "button",
       "role": "button",
       "label": "Send",
@@ -354,6 +237,7 @@
         "vpY": 0.04,
         "size": "m"
       },
+      "href": "",
       "pathNorm": "div[1]>button",
       "frame": ""
     },
@@ -380,6 +264,7 @@
         "vpY": 0.08,
         "size": "m"
       },
+      "href": "/pages/mail.html#inbox",
       "pathNorm": "div[1]>a[1]",
       "frame": ""
     },
@@ -406,6 +291,7 @@
         "vpY": 0.12,
         "size": "m"
       },
+      "href": "/pages/mail.html#starred",
       "pathNorm": "div[1]>a[2]",
       "frame": ""
     },
@@ -432,6 +318,7 @@
         "vpY": 0.16,
         "size": "m"
       },
+      "href": "/pages/mail.html#sent",
       "pathNorm": "div[1]>a[3]",
       "frame": ""
     },
@@ -458,6 +345,7 @@
         "vpY": 0.2,
         "size": "m"
       },
+      "href": "/pages/mail.html#drafts",
       "pathNorm": "div[1]>a[4]",
       "frame": ""
     },
@@ -487,6 +375,7 @@
         "vpY": 0.03,
         "size": "s"
       },
+      "href": "",
       "pathNorm": "div[2]>div[1]>mail-toolbar>div>button[1]",
       "frame": ""
     },
@@ -515,6 +404,7 @@
         "vpY": 0.03,
         "size": "s"
       },
+      "href": "",
       "pathNorm": "div[2]>div[1]>mail-toolbar>div>button[2]",
       "frame": ""
     },
@@ -543,6 +433,7 @@
         "vpY": 0.03,
         "size": "s"
       },
+      "href": "",
       "pathNorm": "div[2]>div[1]>mail-toolbar>div>button[3]",
       "frame": ""
     },
@@ -571,6 +462,7 @@
         "vpY": 0.12,
         "size": "xl"
       },
+      "href": "",
       "pathNorm": "div[2]>div[2]>div[1]",
       "frame": ""
     },
@@ -599,89 +491,12 @@
         "vpY": 0.12,
         "size": "s"
       },
+      "href": "",
       "pathNorm": "div[2]>div[2]>div[1]>button",
       "frame": ""
     },
     {
       "i": 10,
-      "tag": "span",
-      "role": "span",
-      "name": "Priya Raman",
-      "nameNorm": "priya raman",
-      "stable": {},
-      "landmarks": [
-        "main"
-      ],
-      "context": {
-        "heading": "Primary",
-        "headingNorm": "primary",
-        "item": "☆ Priya Raman Quarterly numbers — draft attached 10:42",
-        "itemNorm": "☆ priya raman quarterly numbers — draft attached 10:42"
-      },
-      "geom": {
-        "docX": 0.26,
-        "docY": 0.12,
-        "vpX": 0.26,
-        "vpY": 0.12,
-        "size": "m"
-      },
-      "pathNorm": "div[2]>div[2]>div[1]>span[1]",
-      "frame": ""
-    },
-    {
-      "i": 11,
-      "tag": "span",
-      "role": "span",
-      "name": "Quarterly numbers — draft attached",
-      "nameNorm": "quarterly numbers — draft attached",
-      "stable": {},
-      "landmarks": [
-        "main"
-      ],
-      "context": {
-        "heading": "Primary",
-        "headingNorm": "primary",
-        "item": "☆ Priya Raman Quarterly numbers — draft attached 10:42",
-        "itemNorm": "☆ priya raman quarterly numbers — draft attached 10:42"
-      },
-      "geom": {
-        "docX": 0.63,
-        "docY": 0.12,
-        "vpX": 0.63,
-        "vpY": 0.12,
-        "size": "l"
-      },
-      "pathNorm": "div[2]>div[2]>div[1]>span[2]",
-      "frame": ""
-    },
-    {
-      "i": 12,
-      "tag": "span",
-      "role": "span",
-      "name": "10:42",
-      "nameNorm": "10:42",
-      "stable": {},
-      "landmarks": [
-        "main"
-      ],
-      "context": {
-        "heading": "Primary",
-        "headingNorm": "primary",
-        "item": "☆ Priya Raman Quarterly numbers — draft attached 10:42",
-        "itemNorm": "☆ priya raman quarterly numbers — draft attached 10:42"
-      },
-      "geom": {
-        "docX": 0.96,
-        "docY": 0.12,
-        "vpX": 0.96,
-        "vpY": 0.12,
-        "size": "s"
-      },
-      "pathNorm": "div[2]>div[2]>div[1]>span[3]",
-      "frame": ""
-    },
-    {
-      "i": 13,
       "tag": "div",
       "role": "listitem",
       "name": "☆ GitHub [tiny-brow] New issue opened 09:15",
@@ -705,11 +520,12 @@
         "vpY": 0.18,
         "size": "xl"
       },
+      "href": "",
       "pathNorm": "div[2]>div[2]>div[2]",
       "frame": ""
     },
     {
-      "i": 14,
+      "i": 11,
       "tag": "button",
       "role": "button",
       "name": "Not starred",
@@ -733,89 +549,12 @@
         "vpY": 0.18,
         "size": "s"
       },
+      "href": "",
       "pathNorm": "div[2]>div[2]>div[2]>button",
       "frame": ""
     },
     {
-      "i": 15,
-      "tag": "span",
-      "role": "span",
-      "name": "GitHub",
-      "nameNorm": "github",
-      "stable": {},
-      "landmarks": [
-        "main"
-      ],
-      "context": {
-        "heading": "Primary",
-        "headingNorm": "primary",
-        "item": "☆ GitHub [tiny-brow] New issue opened 09:15",
-        "itemNorm": "☆ github [tiny-brow] new issue opened 09:15"
-      },
-      "geom": {
-        "docX": 0.26,
-        "docY": 0.18,
-        "vpX": 0.26,
-        "vpY": 0.18,
-        "size": "m"
-      },
-      "pathNorm": "div[2]>div[2]>div[2]>span[1]",
-      "frame": ""
-    },
-    {
-      "i": 16,
-      "tag": "span",
-      "role": "span",
-      "name": "[tiny-brow] New issue opened",
-      "nameNorm": "[tiny-brow] new issue opened",
-      "stable": {},
-      "landmarks": [
-        "main"
-      ],
-      "context": {
-        "heading": "Primary",
-        "headingNorm": "primary",
-        "item": "☆ GitHub [tiny-brow] New issue opened 09:15",
-        "itemNorm": "☆ github [tiny-brow] new issue opened 09:15"
-      },
-      "geom": {
-        "docX": 0.63,
-        "docY": 0.18,
-        "vpX": 0.63,
-        "vpY": 0.18,
-        "size": "l"
-      },
-      "pathNorm": "div[2]>div[2]>div[2]>span[2]",
-      "frame": ""
-    },
-    {
-      "i": 17,
-      "tag": "span",
-      "role": "span",
-      "name": "09:15",
-      "nameNorm": "09:15",
-      "stable": {},
-      "landmarks": [
-        "main"
-      ],
-      "context": {
-        "heading": "Primary",
-        "headingNorm": "primary",
-        "item": "☆ GitHub [tiny-brow] New issue opened 09:15",
-        "itemNorm": "☆ github [tiny-brow] new issue opened 09:15"
-      },
-      "geom": {
-        "docX": 0.96,
-        "docY": 0.18,
-        "vpX": 0.96,
-        "vpY": 0.18,
-        "size": "s"
-      },
-      "pathNorm": "div[2]>div[2]>div[2]>span[3]",
-      "frame": ""
-    },
-    {
-      "i": 18,
+      "i": 12,
       "tag": "div",
       "role": "listitem",
       "name": "★ IRCTC Booking confirmed: PNR 4521 Yesterday",
@@ -839,11 +578,12 @@
         "vpY": 0.23,
         "size": "xl"
       },
+      "href": "",
       "pathNorm": "div[2]>div[2]>div[3]",
       "frame": ""
     },
     {
-      "i": 19,
+      "i": 13,
       "tag": "button",
       "role": "button",
       "name": "Starred",
@@ -867,89 +607,12 @@
         "vpY": 0.23,
         "size": "s"
       },
+      "href": "",
       "pathNorm": "div[2]>div[2]>div[3]>button",
       "frame": ""
     },
     {
-      "i": 20,
-      "tag": "span",
-      "role": "span",
-      "name": "IRCTC",
-      "nameNorm": "irctc",
-      "stable": {},
-      "landmarks": [
-        "main"
-      ],
-      "context": {
-        "heading": "Primary",
-        "headingNorm": "primary",
-        "item": "★ IRCTC Booking confirmed: PNR 4521 Yesterday",
-        "itemNorm": "★ irctc booking confirmed: pnr 4521 yesterday"
-      },
-      "geom": {
-        "docX": 0.26,
-        "docY": 0.23,
-        "vpX": 0.26,
-        "vpY": 0.23,
-        "size": "m"
-      },
-      "pathNorm": "div[2]>div[2]>div[3]>span[1]",
-      "frame": ""
-    },
-    {
-      "i": 21,
-      "tag": "span",
-      "role": "span",
-      "name": "Booking confirmed: PNR 4521",
-      "nameNorm": "booking confirmed: pnr",
-      "stable": {},
-      "landmarks": [
-        "main"
-      ],
-      "context": {
-        "heading": "Primary",
-        "headingNorm": "primary",
-        "item": "★ IRCTC Booking confirmed: PNR 4521 Yesterday",
-        "itemNorm": "★ irctc booking confirmed: pnr 4521 yesterday"
-      },
-      "geom": {
-        "docX": 0.63,
-        "docY": 0.23,
-        "vpX": 0.63,
-        "vpY": 0.23,
-        "size": "l"
-      },
-      "pathNorm": "div[2]>div[2]>div[3]>span[2]",
-      "frame": ""
-    },
-    {
-      "i": 22,
-      "tag": "span",
-      "role": "span",
-      "name": "Yesterday",
-      "nameNorm": "yesterday",
-      "stable": {},
-      "landmarks": [
-        "main"
-      ],
-      "context": {
-        "heading": "Primary",
-        "headingNorm": "primary",
-        "item": "★ IRCTC Booking confirmed: PNR 4521 Yesterday",
-        "itemNorm": "★ irctc booking confirmed: pnr 4521 yesterday"
-      },
-      "geom": {
-        "docX": 0.96,
-        "docY": 0.23,
-        "vpX": 0.96,
-        "vpY": 0.23,
-        "size": "s"
-      },
-      "pathNorm": "div[2]>div[2]>div[3]>span[3]",
-      "frame": ""
-    },
-    {
-      "i": 23,
+      "i": 14,
       "tag": "input",
       "role": "textbox",
       "name": "Write a reply",
@@ -974,11 +637,12 @@
         "vpY": 0.28,
         "size": "m"
       },
+      "href": "",
       "pathNorm": "form>input",
       "frame": "iframe"
     },
     {
-      "i": 24,
+      "i": 15,
       "tag": "button",
       "role": "button",
       "name": "Send",
@@ -1002,6 +666,7 @@
         "vpY": 0.28,
         "size": "s"
       },
+      "href": "",
       "pathNorm": "form>button",
       "frame": "iframe"
     }
