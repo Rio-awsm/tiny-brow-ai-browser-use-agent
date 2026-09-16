@@ -24,10 +24,47 @@ export interface Viewport {
   docH: number;
 }
 
+/**
+ * Who an element is, independent of the number it happens to have this step.
+ * Kept panel-side for matching across re-renders; never serialised to the model.
+ */
+export interface ElementDescriptor {
+  /** The model-facing number, or null for a candidate cut by `INDEX_CAP`. */
+  i: number | null;
+  tag: string;
+  role: string;
+  name: string;
+  nameNorm: string;
+  /** Test ids, `name`, `type`, and an `id` that does not look generated. */
+  stable: Record<string, string>;
+  /** Enclosing landmarks, outermost first, e.g. `["header", "form:search"]`. */
+  landmarks: string[];
+  context: {
+    heading: string;
+    headingNorm: string;
+    /** Text of the nearest container repeated among its siblings, like a result card. */
+    item: string;
+    itemNorm: string;
+  };
+  geom: {
+    /** Centre as a fraction of the document, and of the viewport. Two decimals. */
+    docX: number;
+    docY: number;
+    vpX: number;
+    vpY: number;
+    size: "xs" | "s" | "m" | "l" | "xl";
+  };
+  /** Tag chain with nth-of-type, skipping anonymous div and span wrappers. */
+  pathNorm: string;
+  frame: string;
+}
+
 export interface PageIndex {
   url: string;
   title: string;
   elements: IndexedElement[];
+  /** Every candidate up to `DESCRIPTOR_CAP`, in document order — not only the ones shown. */
+  descriptors: ElementDescriptor[];
   /** Candidates before the cap, so a truncated index is visibly truncated. */
   totalFound: number;
   viewport: Viewport;
@@ -39,6 +76,7 @@ export interface PageIndex {
 
 export const INDEX_CAP = 40;
 export const TEXT_CAP = 4000;
+export const DESCRIPTOR_CAP = 600;
 
 /**
  * Rough token count. Deliberately an over-estimate: the budget it guards is

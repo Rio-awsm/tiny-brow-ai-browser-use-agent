@@ -44,6 +44,7 @@ function page(url: string, over: Partial<PageIndex> = {}): PageIndex {
     url,
     title: "t",
     elements: [el(0, "textbox", "Search"), el(1, "button", "Go")],
+    descriptors: [],
     totalFound: 2,
     viewport: { w: 1000, h: 800, scrollX: 0, scrollY: 0, docH: 2000 },
     text: "page text",

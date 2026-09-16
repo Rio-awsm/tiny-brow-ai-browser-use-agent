@@ -1,0 +1,71 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <title>Settings · Accessibility</title>
+    <style>
+      body { margin: 0; font: 14px/1.5 ui-sans-serif, -apple-system, "Segoe UI", Roboto, sans-serif; }
+      .shell { display: grid; grid-template-columns: 220px 1fr; min-height: 100vh; }
+      .side { border-right: 1px solid #ddd; padding: 16px; }
+      .side a { display: block; padding: 6px 8px; color: #1f2328; text-decoration: none; }
+      .content { padding: 24px; }
+      .setting { display: flex; justify-content: space-between; align-items: center; padding: 12px 0; border-bottom: 1px solid #eee; max-width: 560px; }
+      [role="switch"] { width: 40px; height: 22px; border-radius: 11px; border: 1px solid #aaa; background: #eee; cursor: pointer; }
+      [role="switch"][aria-checked="true"] { background: #2da44e; }
+      .backdrop { position: fixed; inset: 0; background: rgba(0,0,0,.45); display: flex; align-items: center; justify-content: center; }
+      .modal { position: relative; background: #fff; border-radius: 10px; padding: 20px 22px; width: 380px; }
+      .modal h2 { margin: 0 0 8px; font-size: 17px; }
+      .close { position: absolute; top: 8px; right: 8px; width: 28px; height: 28px; border: 0; background: none; cursor: pointer; }
+      .actions { display: flex; gap: 8px; justify-content: flex-end; margin-top: 16px; }
+      .actions button { padding: 6px 14px; cursor: pointer; }
+    </style>
+  </head>
+  <body>
+    <div class="shell">
+      <nav class="side" aria-label="Settings">
+        <a href="#profile">Public profile</a>
+        <a href="#account">Account</a>
+        <a href="#appearance">Appearance</a>
+        <a href="#accessibility" aria-current="page">Accessibility</a>
+        <a href="#notifications">Notifications</a>
+      </nav>
+      <main class="content">
+        <h1>Accessibility</h1>
+        <section aria-labelledby="kbd-heading">
+          <h2 id="kbd-heading">Keyboard shortcuts</h2>
+          <div class="setting">
+            <span id="kbd-general">General shortcuts</span>
+            <button role="switch" aria-checked="true" aria-labelledby="kbd-general" data-testid="toggle-general"></button>
+          </div>
+          <div class="setting">
+            <span id="kbd-command">Command palette</span>
+            <button role="switch" aria-checked="false" aria-labelledby="kbd-command" data-testid="toggle-command"></button>
+          </div>
+          <div class="setting">
+            <span id="kbd-char">Character keys</span>
+            <button role="switch" aria-checked="true" aria-labelledby="kbd-char" data-testid="toggle-char"></button>
+          </div>
+        </section>
+        <section>
+          <h2>Motion</h2>
+          <div class="setting">
+            <label for="motion">Reduce motion</label>
+            <select id="motion" name="motion"><option>Sync with system</option><option>Enabled</option></select>
+          </div>
+        </section>
+      </main>
+    </div>
+
+    <div class="backdrop">
+      <div class="modal" role="dialog" aria-modal="true" aria-labelledby="unsaved-title">
+        <button class="close" data-dismiss="modal"><svg width="14" height="14" viewBox="0 0 14 14"><title>Close</title><path d="M1 1l12 12M13 1L1 13" stroke="#333" stroke-width="2"/></svg></button>
+        <h2 id="unsaved-title">Unsaved changes</h2>
+        <p>You changed your accessibility settings. Save them before leaving?</p>
+        <div class="actions">
+          <button id="radix-:R1b:">Discard</button>
+          <button id="save-settings">Save changes</button>
+        </div>
+      </div>
+    </div>
+  </body>
+</html>

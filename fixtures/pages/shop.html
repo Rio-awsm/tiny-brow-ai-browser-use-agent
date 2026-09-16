@@ -1,0 +1,130 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>Amazon.in : wireless mouse</title>
+    <style>
+      * { box-sizing: border-box; }
+      body { margin: 0; font: 14px/1.45 ui-sans-serif, -apple-system, "Segoe UI", Roboto, sans-serif; color: #0f1111; }
+      a { color: #007185; text-decoration: none; }
+      .topbar { display: flex; align-items: center; gap: 16px; padding: 10px 16px; background: #131921; color: #fff; }
+      .topbar a { color: #fff; }
+      .logo img { display: block; width: 96px; height: 30px; background: #fff; }
+      .search { flex: 1; display: flex; }
+      .search input { flex: 1; padding: 8px 10px; border: 0; border-radius: 4px 0 0 4px; }
+      .search button { padding: 8px 14px; border: 0; border-radius: 0 4px 4px 0; background: #febd69; cursor: pointer; }
+      .subnav { display: flex; gap: 14px; padding: 6px 16px; background: #232f3e; list-style: none; margin: 0; }
+      .subnav a { color: #fff; }
+      .layout { display: grid; grid-template-columns: 220px 1fr; gap: 20px; padding: 16px; }
+      aside h3 { margin: 12px 0 6px; font-size: 14px; }
+      aside label { display: block; padding: 2px 0; }
+      .results { display: grid; grid-template-columns: repeat(auto-fill, minmax(240px, 1fr)); gap: 16px; }
+      .card { border: 1px solid #ddd; border-radius: 8px; padding: 12px; }
+      .card img { width: 100%; height: 120px; background: #f3f3f3; display: block; }
+      .card h2 { font-size: 15px; margin: 8px 0 4px; font-weight: 500; }
+      .price { font-size: 18px; }
+      .row { display: flex; gap: 8px; margin-top: 8px; }
+      .btn { padding: 6px 12px; border-radius: 16px; border: 1px solid #fcd200; background: #ffd814; cursor: pointer; }
+      .icon { width: 32px; height: 32px; border-radius: 50%; border: 1px solid #ddd; background: #fff; cursor: pointer; }
+      .more { display: inline-block; margin: 16px 0; color: #007185; cursor: pointer; }
+      .pages { display: flex; gap: 6px; }
+      .pages a { padding: 6px 10px; border: 1px solid #ddd; border-radius: 6px; }
+      footer { padding: 24px 16px; background: #232f3e; }
+      footer a { color: #ddd; margin-right: 16px; }
+    </style>
+  </head>
+  <body>
+    <header class="topbar">
+      <a class="logo" href="/pages/shop.html"><img alt="Amazon.in" src="data:image/gif;base64,R0lGODlhAQABAAAAACw=" /></a>
+      <form class="search" role="search" aria-label="Search Amazon.in" action="/pages/shop.html">
+        <input type="text" name="field-keywords" id="twotabsearchtextbox" aria-label="Search Amazon.in" value="wireless mouse" />
+        <button type="submit" id="nav-search-submit-button">Go</button>
+      </form>
+      <a href="#account" id=":r2:">Account &amp; Lists</a>
+      <a href="#orders" id="nav-orders">Returns &amp; Orders</a>
+      <a href="#cart" data-testid="nav-cart" id="a8f3c21e9b">Cart (3)</a>
+    </header>
+
+    <nav aria-label="Primary">
+      <ul class="subnav">
+        <li><a href="#deals">Today's Deals</a></li>
+        <li><a href="#mobiles">Mobiles</a></li>
+        <li><a href="#fashion">Fashion</a></li>
+        <li><a href="#electronics">Electronics</a></li>
+      </ul>
+    </nav>
+
+    <div class="layout">
+      <aside aria-label="Filters">
+        <h3>Brands</h3>
+        <label><input type="checkbox" id="mui-48213" /> Logitech</label>
+        <label><input type="checkbox" id="mui-48214" /> HP</label>
+        <label><input type="checkbox" id="mui-48215" /> Dell</label>
+        <h3>Price</h3>
+        <label for="lowPrice">Min</label>
+        <input id="lowPrice" name="low-price" type="number" placeholder="Min" />
+        <label for="highPrice">Max</label>
+        <input id="highPrice" name="high-price" type="number" placeholder="Max" />
+      </aside>
+
+      <main>
+        <h1>Results for "wireless mouse"</h1>
+        <div class="results">
+          <div class="card" data-component-type="s-search-result">
+            <img alt="" src="data:image/gif;base64,R0lGODlhAQABAAAAACw=" />
+            <h2><a href="#p1">Logitech M235 Wireless Mouse, 1000 DPI</a></h2>
+            <span class="price">₹795</span>
+            <div class="row">
+              <button class="btn" id="a-autoid-1234-announce">Add to cart</button>
+              <button class="icon" aria-label="Add to wish list">♡</button>
+            </div>
+          </div>
+          <div class="card" data-component-type="s-search-result">
+            <img alt="" src="data:image/gif;base64,R0lGODlhAQABAAAAACw=" />
+            <h2><a href="#p2">Dell MS116 Optical Wired Mouse</a></h2>
+            <span class="price">₹549</span>
+            <div class="row">
+              <button class="btn" id="a-autoid-18-announce">Add to cart</button>
+              <button class="icon" aria-label="Add to wish list">♡</button>
+            </div>
+          </div>
+          <div class="card" data-component-type="s-search-result">
+            <img alt="" src="data:image/gif;base64,R0lGODlhAQABAAAAACw=" />
+            <h2><a href="#p3">HP X200 Wireless Mouse, 2.4 GHz</a></h2>
+            <span class="price">₹649</span>
+            <div class="row">
+              <button class="btn" id="a-autoid-1236-announce">Add to cart</button>
+              <button class="icon" aria-label="Add to wish list">♡</button>
+            </div>
+          </div>
+          <div class="card" data-component-type="s-search-result">
+            <img alt="" src="data:image/gif;base64,R0lGODlhAQABAAAAACw=" />
+            <h2><a href="#p4">Zebronics Zeb-Transformer Wireless Mouse</a></h2>
+            <span class="price">₹399</span>
+            <div class="row">
+              <button class="btn" id="a-autoid-1237-announce">Add to cart</button>
+              <button class="icon" aria-label="Add to wish list">♡</button>
+            </div>
+          </div>
+        </div>
+
+        <span class="more">See more results</span>
+
+        <nav aria-label="Pagination" class="pages">
+          <a href="#prev">Previous</a>
+          <a href="#1" aria-current="page">1</a>
+          <a href="#2">2</a>
+          <a href="#3">3</a>
+          <a href="#next">Next</a>
+        </nav>
+      </main>
+    </div>
+
+    <footer>
+      <a href="#top">Back to top</a>
+      <a href="#about">About Us</a>
+      <a href="#careers">Careers</a>
+    </footer>
+  </body>
+</html>

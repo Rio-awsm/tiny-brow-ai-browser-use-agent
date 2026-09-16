@@ -22,6 +22,7 @@
     "check": "npm run typecheck && npm run verify:tasks && npm run check:chars && npm run check:loop && npm run build && npm run check:secrets && npm run check:extractor",
     "icons": "tsx scripts/make-icons.ts",
     "check:extractor": "tsx scripts/check-extractor.ts",
+    "check:descriptors": "tsx scripts/check-descriptors.ts",
     "bench": "tsx harness/index.ts --driver bridge",
     "matrix": "tsx harness/index.ts --compare",
     "fixtures": "tsx scripts/fixtures.ts",

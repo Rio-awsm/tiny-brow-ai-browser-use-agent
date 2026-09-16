@@ -11,17 +11,9 @@
  *   npm run check:extractor
  */
 
-import { existsSync, readFileSync } from "node:fs";
-import { join } from "node:path";
+import { extractFunction, readBundle } from "./lib/bundle";
 
-const BUNDLE = join(process.cwd(), ".output", "chrome-mv3", "background.js");
-
-if (!existsSync(BUNDLE)) {
-  console.error(`\n  no build found at ${BUNDLE} — run \`npm run build\` first\n`);
-  process.exit(1);
-}
-
-const src = readFileSync(BUNDLE, "utf8");
+const src = readBundle();
 
 // Every injection is written as `(${NAME.toString()})(...)` at its call site.
 const names = [...new Set([...src.matchAll(/\(\$\{(\w+)\.toString\(\)\}\)/g)].map((m) => m[1]!))];
@@ -61,26 +53,6 @@ for (const name of names) {
 if (failed) process.exit(1);
 console.log(`\n  ${names.length} injected functions verified\n`);
 
-/** Brace-matches a function declaration out of the bundle. */
-function extractFunction(bundle: string, fnName: string): string | null {
-  const start = bundle.indexOf(`function ${fnName}(`);
-  if (start === -1) return null;
-
-  let depth = 0;
-  let seenBody = false;
-  for (let i = start; i < bundle.length; i++) {
-    const ch = bundle[i];
-    if (ch === "{") {
-      depth++;
-      seenBody = true;
-    } else if (ch === "}") {
-      depth--;
-      if (seenBody && depth === 0) return bundle.slice(start, i + 1);
-    }
-  }
-  return null;
-}
-
 /**
  * Runs the function with page globals only, against two page states.
  *
@@ -95,9 +67,9 @@ function invoke(source: string): void {
     const keys = Object.keys(stub);
     const factory = new Function(...keys, `return (${source});`);
     const fn = factory(...keys.map((k) => stub[k])) as (...args: unknown[]) => unknown;
-    // The indexer takes (indexCap, textCap) and focusIndexed takes (index,
+    // The indexer takes (indexCap, textCap, descriptorCap) and focusIndexed takes (index,
     // selectAll); both are satisfied by these, and the rest ignore their args.
-    fn(40, 4000);
+    fn(40, 4000, 600);
   }
 }
 

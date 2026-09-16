@@ -1,0 +1,53 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <title>Pizza order</title>
+    <style>
+      body { margin: 0; font: 15px/1.5 ui-sans-serif, -apple-system, "Segoe UI", Roboto, sans-serif; }
+      main { max-width: 560px; margin: 32px auto; padding: 0 20px; }
+      p { margin: 10px 0; }
+      fieldset { margin: 14px 0; border: 1px solid #ccc; border-radius: 6px; }
+      input[type="text"], input[type="tel"], input[type="email"], textarea, select { width: 100%; padding: 6px 8px; }
+      button { padding: 8px 16px; cursor: pointer; }
+    </style>
+  </head>
+  <body>
+    <main>
+      <h1>Order a pizza</h1>
+      <form method="post" action="/pages/form.html" aria-labelledby="order-title">
+        <h2 id="order-title">Pizza order</h2>
+        <p><label>Customer name: <input type="text" name="custname" /></label></p>
+        <p><label for="custtel">Telephone:</label> <input type="tel" id="custtel" name="custtel" /></p>
+        <p><label for="«r7»">E-mail address:</label> <input type="email" id="«r7»" name="custemail" /></p>
+
+        <fieldset>
+          <legend>Pizza Size</legend>
+          <p><label><input type="radio" name="size" value="small" /> Small</label></p>
+          <p><label><input type="radio" name="size" value="medium" /> Medium</label></p>
+          <p><label><input type="radio" name="size" value="large" /> Large</label></p>
+        </fieldset>
+
+        <fieldset>
+          <legend>Pizza Toppings</legend>
+          <p><label><input type="checkbox" name="topping" value="bacon" /> Bacon</label></p>
+          <p><label><input type="checkbox" name="topping" value="cheese" /> Extra Cheese</label></p>
+          <p><label><input type="checkbox" name="topping" value="onion" /> Onion</label></p>
+          <p><label><input type="checkbox" name="topping" value="mushroom" /> Mushroom</label></p>
+        </fieldset>
+
+        <p>
+          <label for="delivery">Preferred delivery time:</label>
+          <select id="delivery" name="delivery">
+            <option>As soon as possible</option>
+            <option>In one hour</option>
+          </select>
+        </p>
+        <p><input type="text" name="coupon" placeholder="Coupon code" /></p>
+        <p><input type="text" name="field_9f2c41ab7e" title="Gift message" /></p>
+        <p><label for="comments">Delivery instructions:</label> <textarea id="comments" name="comments"></textarea></p>
+        <p><button type="submit">Submit order</button> <input type="reset" value="Clear form" /></p>
+      </form>
+    </main>
+  </body>
+</html>

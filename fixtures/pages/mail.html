@@ -1,0 +1,77 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <title>Inbox (12) - Mail</title>
+    <style>
+      body { margin: 0; font: 14px/1.4 ui-sans-serif, -apple-system, "Segoe UI", Roboto, sans-serif; }
+      .app { display: grid; grid-template-columns: 200px 1fr; }
+      .rail { padding: 12px; }
+      .compose { padding: 12px 20px; border-radius: 14px; border: 0; background: #c2e7ff; cursor: pointer; }
+      .folders a { display: block; padding: 6px 12px; color: #202124; text-decoration: none; }
+      .list { border-left: 1px solid #eee; }
+      .toolbar { padding: 8px 12px; border-bottom: 1px solid #eee; }
+      .msg { display: grid; grid-template-columns: 32px 180px 1fr 80px; align-items: center; padding: 8px 12px; border-bottom: 1px solid #f1f1f1; cursor: pointer; }
+      .star { width: 24px; height: 24px; border: 0; background: none; cursor: pointer; }
+      .who { font-weight: 600; }
+      .when { text-align: right; color: #5f6368; }
+      iframe { width: 100%; height: 70px; border: 0; border-top: 1px solid #eee; }
+    </style>
+  </head>
+  <body>
+    <div class="app">
+      <div class="rail" role="navigation" aria-label="Mailboxes">
+        <button class="compose" data-test="compose">Compose</button>
+        <div class="folders">
+          <a href="#inbox" id="ember412">Inbox 12</a>
+          <a href="#starred">Starred</a>
+          <a href="#sent">Sent</a>
+          <a href="#drafts">Drafts 2</a>
+        </div>
+      </div>
+      <div class="list" role="main">
+        <div class="toolbar"><mail-toolbar></mail-toolbar></div>
+        <h2 style="margin: 8px 12px; font-size: 13px; color: #5f6368;">Primary</h2>
+        <div role="list">
+          <div class="msg" role="listitem" tabindex="0" data-qa="thread">
+            <button class="star" aria-label="Not starred">☆</button>
+            <span class="who">Priya Raman</span>
+            <span>Quarterly numbers — draft attached</span>
+            <span class="when">10:42</span>
+          </div>
+          <div class="msg" role="listitem" tabindex="0" data-qa="thread">
+            <button class="star" aria-label="Not starred">☆</button>
+            <span class="who">GitHub</span>
+            <span>[tiny-brow] New issue opened</span>
+            <span class="when">09:15</span>
+          </div>
+          <div class="msg" role="listitem" tabindex="0" data-qa="thread">
+            <button class="star" aria-label="Starred">★</button>
+            <span class="who">IRCTC</span>
+            <span>Booking confirmed: PNR 4521</span>
+            <span class="when">Yesterday</span>
+          </div>
+        </div>
+        <iframe title="Quick reply" srcdoc='<!doctype html><body style="margin:8px;font:14px sans-serif"><form aria-label="Quick reply"><input name="reply" placeholder="Write a reply"> <button type="submit">Send</button></form></body>'></iframe>
+      </div>
+    </div>
+
+    <script>
+      customElements.define(
+        "mail-toolbar",
+        class extends HTMLElement {
+          connectedCallback() {
+            const root = this.attachShadow({ mode: "open" });
+            root.innerHTML =
+              '<style>button{margin-right:6px;padding:4px 10px;cursor:pointer}</style>' +
+              '<div role="toolbar" aria-label="Thread actions">' +
+              '<button data-testid="archive">Archive</button>' +
+              '<button title="Delete"><svg width="12" height="12"></svg></button>' +
+              '<button aria-labelledby="refresh-label">↻</button><span id="refresh-label" hidden>Refresh</span>' +
+              "</div>";
+          }
+        },
+      );
+    </script>
+  </body>
+</html>

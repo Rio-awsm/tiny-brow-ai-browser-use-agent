@@ -341,6 +341,7 @@ npm run check          # everything below, in order
 | `check:loop` | The agent loop against a scripted model — no browser, no key, no cost. Fifty-odd cases pinning what it refuses, when it pushes back, what it answers with. |
 | `check:secrets` | No credential can reach the extension bundle. A build-time environment value would be inlined into the published output and shipped to every user. |
 | `check:extractor` | Every injected function is pulled back out of the *built* bundle and run against a stub DOM. Bundler hoisting breaks injected code silently, at runtime, in the page. |
+| `check:descriptors` | Runs the built indexer in headless Chrome over `fixtures/`. Every element's descriptor — accessible name, landmarks, stable attributes, context, geometry, path — must survive a reload byte-identical, resolve the tricky cases correctly, and leave the model's index untouched. Needs a local Chrome or Edge, so it is not part of `check`. Pass URLs to report on real sites. |
 | `check:chars` | No control characters in source. A backspace byte written where `\b` was meant reads as a word boundary in every editor and matches nothing at runtime. |
 | `verify:tasks` | The task list and its machine-readable twin agree. |
 
