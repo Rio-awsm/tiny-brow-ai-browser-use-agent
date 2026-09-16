@@ -9,12 +9,13 @@
  *   npm run check:descriptors
  *   npm run check:descriptors -- https://www.amazon.in/s?k=wireless+mouse   (report only)
  *   npm run check:descriptors -- --dump fixtures/pages/shop.html
+ *   npm run check:descriptors -- --update   (rewrite fixtures/descriptors after an intended change)
  */
 
 import { spawn, type ChildProcess } from "node:child_process";
-import { existsSync, mkdtempSync, readdirSync, rmSync } from "node:fs";
+import { existsSync, mkdirSync, mkdtempSync, readFileSync, readdirSync, rmSync, writeFileSync } from "node:fs";
 import { tmpdir } from "node:os";
-import { join, relative } from "node:path";
+import { dirname, join, relative } from "node:path";
 import {
   DESCRIPTOR_CAP,
   INDEX_CAP,
@@ -26,6 +27,7 @@ import {
 } from "../src/lib/page-index";
 import { extractFunction, readBundle } from "./lib/bundle";
 import { FIXTURE_ROOT, serveFixturesEphemeral } from "./lib/fixture-server";
+import { snapshotPath } from "./lib/snapshots";
 
 const ELEMENT_KEYS = "frame,h,i,inViewport,label,note,role,tag,w,x,y";
 
@@ -198,6 +200,7 @@ const EXPECT: Expectation[] = [
 
 const args = process.argv.slice(2);
 const dump = args.includes("--dump");
+const update = args.includes("--update");
 const targets = args.filter((a) => !a.startsWith("--"));
 
 const bundle = readBundle();
@@ -230,6 +233,7 @@ try {
     totals.named += result.first.descriptors.filter((d) => d.name).length;
     totals.landmarked += result.first.descriptors.filter((d) => d.landmarks.length).length;
     if (dump) console.log(JSON.stringify(result.first.descriptors, null, 2));
+    checkSnapshot(path, result.first);
 
     const expected = EXPECT.filter((e) => e.page === path);
     for (const exp of expected) {
@@ -342,6 +346,26 @@ function report(name: string, { first, second, reloaded }: Inspection) {
       `${name}: descriptors changed across a reload at #${at}\n` +
         `      ${JSON.stringify(first.descriptors[at])}\n      ${JSON.stringify(second.descriptors[at])}`,
     );
+  }
+}
+
+/**
+ * The matcher and drift checks run on these files rather than a browser, so a
+ * snapshot that no longer matches what the indexer produces is a failure.
+ */
+function checkSnapshot(path: string, page: PageIndex) {
+  const file = snapshotPath(path);
+  const fresh =
+    JSON.stringify({ url: path, elements: page.elements, descriptors: page.descriptors }, null, 2) + "\n";
+  if (update) {
+    mkdirSync(dirname(file), { recursive: true });
+    writeFileSync(file, fresh);
+    console.log("    snapshot written");
+    return;
+  }
+  // Git may have checked the file out with CRLF.
+  if (!existsSync(file) || readFileSync(file, "utf8").replace(/\r\n/g, "\n") !== fresh) {
+    fail(`${path}: snapshot is stale — rerun with --update if the indexer change was intended`);
   }
 }
 

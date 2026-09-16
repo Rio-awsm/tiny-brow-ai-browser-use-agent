@@ -1,0 +1,131 @@
+{
+  "url": "pages/dialog.html",
+  "elements": [
+    {
+      "i": 0,
+      "tag": "button",
+      "role": "button",
+      "label": "Close",
+      "x": 816,
+      "y": 324,
+      "w": 28,
+      "h": 28,
+      "inViewport": true,
+      "frame": "",
+      "note": "in dialog"
+    },
+    {
+      "i": 1,
+      "tag": "button",
+      "role": "button",
+      "label": "Discard",
+      "x": 628,
+      "y": 433,
+      "w": 77,
+      "h": 31,
+      "inViewport": true,
+      "frame": "",
+      "note": "in dialog"
+    },
+    {
+      "i": 2,
+      "tag": "button",
+      "role": "button",
+      "label": "Save changes",
+      "x": 714,
+      "y": 433,
+      "w": 116,
+      "h": 31,
+      "inViewport": true,
+      "frame": "",
+      "note": "in dialog"
+    }
+  ],
+  "descriptors": [
+    {
+      "i": 0,
+      "tag": "button",
+      "role": "button",
+      "name": "Close",
+      "nameNorm": "close",
+      "stable": {
+        "type": "submit"
+      },
+      "landmarks": [
+        "dialog:unsaved changes"
+      ],
+      "context": {
+        "heading": "Motion",
+        "headingNorm": "motion",
+        "item": "",
+        "itemNorm": ""
+      },
+      "geom": {
+        "docX": 0.65,
+        "docY": 0.42,
+        "vpX": 0.65,
+        "vpY": 0.42,
+        "size": "s"
+      },
+      "pathNorm": "div[2]>div>button",
+      "frame": ""
+    },
+    {
+      "i": 1,
+      "tag": "button",
+      "role": "button",
+      "name": "Discard",
+      "nameNorm": "discard",
+      "stable": {
+        "type": "submit"
+      },
+      "landmarks": [
+        "dialog:unsaved changes"
+      ],
+      "context": {
+        "heading": "Unsaved changes",
+        "headingNorm": "unsaved changes",
+        "item": "",
+        "itemNorm": ""
+      },
+      "geom": {
+        "docX": 0.52,
+        "docY": 0.56,
+        "vpX": 0.52,
+        "vpY": 0.56,
+        "size": "s"
+      },
+      "pathNorm": "div[2]>div>button[1]",
+      "frame": ""
+    },
+    {
+      "i": 2,
+      "tag": "button",
+      "role": "button",
+      "name": "Save changes",
+      "nameNorm": "save changes",
+      "stable": {
+        "type": "submit",
+        "id": "save-settings"
+      },
+      "landmarks": [
+        "dialog:unsaved changes"
+      ],
+      "context": {
+        "heading": "Unsaved changes",
+        "headingNorm": "unsaved changes",
+        "item": "",
+        "itemNorm": ""
+      },
+      "geom": {
+        "docX": 0.6,
+        "docY": 0.56,
+        "vpX": 0.6,
+        "vpY": 0.56,
+        "size": "m"
+      },
+      "pathNorm": "div[2]>div>button[2]",
+      "frame": ""
+    }
+  ]
+}

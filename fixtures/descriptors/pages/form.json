@@ -1,0 +1,693 @@
+{
+  "url": "pages/form.html",
+  "elements": [
+    {
+      "i": 0,
+      "tag": "input",
+      "role": "textbox",
+      "label": "custname",
+      "x": 360,
+      "y": 172,
+      "w": 580,
+      "h": 31,
+      "inViewport": true,
+      "frame": "",
+      "note": ""
+    },
+    {
+      "i": 1,
+      "tag": "input",
+      "role": "textbox",
+      "label": "custtel",
+      "x": 360,
+      "y": 236,
+      "w": 580,
+      "h": 31,
+      "inViewport": true,
+      "frame": "",
+      "note": "tel"
+    },
+    {
+      "i": 2,
+      "tag": "input",
+      "role": "textbox",
+      "label": "custemail",
+      "x": 360,
+      "y": 299,
+      "w": 580,
+      "h": 31,
+      "inViewport": true,
+      "frame": "",
+      "note": "email"
+    },
+    {
+      "i": 3,
+      "tag": "input",
+      "role": "radio",
+      "label": "small",
+      "x": 377,
+      "y": 386,
+      "w": 13,
+      "h": 13,
+      "inViewport": true,
+      "frame": "",
+      "note": "unchecked"
+    },
+    {
+      "i": 4,
+      "tag": "input",
+      "role": "radio",
+      "label": "medium",
+      "x": 377,
+      "y": 418,
+      "w": 13,
+      "h": 13,
+      "inViewport": true,
+      "frame": "",
+      "note": "unchecked"
+    },
+    {
+      "i": 5,
+      "tag": "input",
+      "role": "radio",
+      "label": "large",
+      "x": 377,
+      "y": 451,
+      "w": 13,
+      "h": 13,
+      "inViewport": true,
+      "frame": "",
+      "note": "unchecked"
+    },
+    {
+      "i": 6,
+      "tag": "input",
+      "role": "checkbox",
+      "label": "bacon",
+      "x": 376,
+      "y": 545,
+      "w": 13,
+      "h": 13,
+      "inViewport": true,
+      "frame": "",
+      "note": "unchecked"
+    },
+    {
+      "i": 7,
+      "tag": "input",
+      "role": "checkbox",
+      "label": "cheese",
+      "x": 376,
+      "y": 578,
+      "w": 13,
+      "h": 13,
+      "inViewport": true,
+      "frame": "",
+      "note": "unchecked"
+    },
+    {
+      "i": 8,
+      "tag": "input",
+      "role": "checkbox",
+      "label": "onion",
+      "x": 376,
+      "y": 610,
+      "w": 13,
+      "h": 13,
+      "inViewport": true,
+      "frame": "",
+      "note": "unchecked"
+    },
+    {
+      "i": 9,
+      "tag": "input",
+      "role": "checkbox",
+      "label": "mushroom",
+      "x": 376,
+      "y": 643,
+      "w": 13,
+      "h": 13,
+      "inViewport": true,
+      "frame": "",
+      "note": "unchecked"
+    },
+    {
+      "i": 10,
+      "tag": "select",
+      "role": "combobox",
+      "label": "As soon as possible In one hour",
+      "x": 360,
+      "y": 718,
+      "w": 560,
+      "h": 31,
+      "inViewport": true,
+      "frame": "",
+      "note": "= As soon as possible"
+    },
+    {
+      "i": 11,
+      "tag": "input",
+      "role": "textbox",
+      "label": "Coupon code",
+      "x": 360,
+      "y": 759,
+      "w": 580,
+      "h": 31,
+      "inViewport": true,
+      "frame": "",
+      "note": ""
+    },
+    {
+      "i": 12,
+      "tag": "input",
+      "role": "textbox",
+      "label": "Gift message",
+      "x": 360,
+      "y": 800,
+      "w": 580,
+      "h": 31,
+      "inViewport": false,
+      "frame": "",
+      "note": ""
+    },
+    {
+      "i": 13,
+      "tag": "textarea",
+      "role": "textbox",
+      "label": "comments",
+      "x": 360,
+      "y": 864,
+      "w": 578,
+      "h": 44,
+      "inViewport": false,
+      "frame": "",
+      "note": ""
+    },
+    {
+      "i": 14,
+      "tag": "button",
+      "role": "button",
+      "label": "Submit order",
+      "x": 360,
+      "y": 923,
+      "w": 112,
+      "h": 35,
+      "inViewport": false,
+      "frame": "",
+      "note": ""
+    },
+    {
+      "i": 15,
+      "tag": "input",
+      "role": "button",
+      "label": "Clear form",
+      "x": 476,
+      "y": 930,
+      "w": 78,
+      "h": 21,
+      "inViewport": false,
+      "frame": "",
+      "note": "reset"
+    }
+  ],
+  "descriptors": [
+    {
+      "i": 0,
+      "tag": "input",
+      "role": "textbox",
+      "name": "Customer name:",
+      "nameNorm": "customer name:",
+      "stable": {
+        "name": "custname",
+        "type": "text"
+      },
+      "landmarks": [
+        "main",
+        "form:pizza order"
+      ],
+      "context": {
+        "heading": "Pizza order",
+        "headingNorm": "pizza order",
+        "item": "",
+        "itemNorm": ""
+      },
+      "geom": {
+        "docX": 0.51,
+        "docY": 0.19,
+        "vpX": 0.51,
+        "vpY": 0.23,
+        "size": "l"
+      },
+      "pathNorm": "main>form>p[1]>label>input",
+      "frame": ""
+    },
+    {
+      "i": 1,
+      "tag": "input",
+      "role": "textbox",
+      "name": "Telephone:",
+      "nameNorm": "telephone:",
+      "stable": {
+        "name": "custtel",
+        "type": "tel",
+        "id": "custtel"
+      },
+      "landmarks": [
+        "main",
+        "form:pizza order"
+      ],
+      "context": {
+        "heading": "Pizza order",
+        "headingNorm": "pizza order",
+        "item": "",
+        "itemNorm": ""
+      },
+      "geom": {
+        "docX": 0.51,
+        "docY": 0.25,
+        "vpX": 0.51,
+        "vpY": 0.31,
+        "size": "l"
+      },
+      "pathNorm": "main>form>p[2]>input",
+      "frame": ""
+    },
+    {
+      "i": 2,
+      "tag": "input",
+      "role": "textbox",
+      "name": "E-mail address:",
+      "nameNorm": "e-mail address:",
+      "stable": {
+        "name": "custemail",
+        "type": "email"
+      },
+      "landmarks": [
+        "main",
+        "form:pizza order"
+      ],
+      "context": {
+        "heading": "Pizza order",
+        "headingNorm": "pizza order",
+        "item": "",
+        "itemNorm": ""
+      },
+      "geom": {
+        "docX": 0.51,
+        "docY": 0.32,
+        "vpX": 0.51,
+        "vpY": 0.39,
+        "size": "l"
+      },
+      "pathNorm": "main>form>p[3]>input",
+      "frame": ""
+    },
+    {
+      "i": 3,
+      "tag": "input",
+      "role": "radio",
+      "name": "Small",
+      "nameNorm": "small",
+      "stable": {
+        "name": "size",
+        "type": "radio"
+      },
+      "landmarks": [
+        "main",
+        "form:pizza order"
+      ],
+      "context": {
+        "heading": "Pizza order",
+        "headingNorm": "pizza order",
+        "item": "Small",
+        "itemNorm": "small"
+      },
+      "geom": {
+        "docX": 0.3,
+        "docY": 0.4,
+        "vpX": 0.3,
+        "vpY": 0.49,
+        "size": "xs"
+      },
+      "pathNorm": "main>form>fieldset[1]>p[1]>label>input",
+      "frame": ""
+    },
+    {
+      "i": 4,
+      "tag": "input",
+      "role": "radio",
+      "name": "Medium",
+      "nameNorm": "medium",
+      "stable": {
+        "name": "size",
+        "type": "radio"
+      },
+      "landmarks": [
+        "main",
+        "form:pizza order"
+      ],
+      "context": {
+        "heading": "Pizza order",
+        "headingNorm": "pizza order",
+        "item": "Medium",
+        "itemNorm": "medium"
+      },
+      "geom": {
+        "docX": 0.3,
+        "docY": 0.43,
+        "vpX": 0.3,
+        "vpY": 0.53,
+        "size": "xs"
+      },
+      "pathNorm": "main>form>fieldset[1]>p[2]>label>input",
+      "frame": ""
+    },
+    {
+      "i": 5,
+      "tag": "input",
+      "role": "radio",
+      "name": "Large",
+      "nameNorm": "large",
+      "stable": {
+        "name": "size",
+        "type": "radio"
+      },
+      "landmarks": [
+        "main",
+        "form:pizza order"
+      ],
+      "context": {
+        "heading": "Pizza order",
+        "headingNorm": "pizza order",
+        "item": "Large",
+        "itemNorm": "large"
+      },
+      "geom": {
+        "docX": 0.3,
+        "docY": 0.46,
+        "vpX": 0.3,
+        "vpY": 0.57,
+        "size": "xs"
+      },
+      "pathNorm": "main>form>fieldset[1]>p[3]>label>input",
+      "frame": ""
+    },
+    {
+      "i": 6,
+      "tag": "input",
+      "role": "checkbox",
+      "name": "Bacon",
+      "nameNorm": "bacon",
+      "stable": {
+        "name": "topping",
+        "type": "checkbox"
+      },
+      "landmarks": [
+        "main",
+        "form:pizza order"
+      ],
+      "context": {
+        "heading": "Pizza order",
+        "headingNorm": "pizza order",
+        "item": "Bacon",
+        "itemNorm": "bacon"
+      },
+      "geom": {
+        "docX": 0.3,
+        "docY": 0.56,
+        "vpX": 0.3,
+        "vpY": 0.69,
+        "size": "xs"
+      },
+      "pathNorm": "main>form>fieldset[2]>p[1]>label>input",
+      "frame": ""
+    },
+    {
+      "i": 7,
+      "tag": "input",
+      "role": "checkbox",
+      "name": "Extra Cheese",
+      "nameNorm": "extra cheese",
+      "stable": {
+        "name": "topping",
+        "type": "checkbox"
+      },
+      "landmarks": [
+        "main",
+        "form:pizza order"
+      ],
+      "context": {
+        "heading": "Pizza order",
+        "headingNorm": "pizza order",
+        "item": "Extra Cheese",
+        "itemNorm": "extra cheese"
+      },
+      "geom": {
+        "docX": 0.3,
+        "docY": 0.59,
+        "vpX": 0.3,
+        "vpY": 0.73,
+        "size": "xs"
+      },
+      "pathNorm": "main>form>fieldset[2]>p[2]>label>input",
+      "frame": ""
+    },
+    {
+      "i": 8,
+      "tag": "input",
+      "role": "checkbox",
+      "name": "Onion",
+      "nameNorm": "onion",
+      "stable": {
+        "name": "topping",
+        "type": "checkbox"
+      },
+      "landmarks": [
+        "main",
+        "form:pizza order"
+      ],
+      "context": {
+        "heading": "Pizza order",
+        "headingNorm": "pizza order",
+        "item": "Onion",
+        "itemNorm": "onion"
+      },
+      "geom": {
+        "docX": 0.3,
+        "docY": 0.62,
+        "vpX": 0.3,
+        "vpY": 0.77,
+        "size": "xs"
+      },
+      "pathNorm": "main>form>fieldset[2]>p[3]>label>input",
+      "frame": ""
+    },
+    {
+      "i": 9,
+      "tag": "input",
+      "role": "checkbox",
+      "name": "Mushroom",
+      "nameNorm": "mushroom",
+      "stable": {
+        "name": "topping",
+        "type": "checkbox"
+      },
+      "landmarks": [
+        "main",
+        "form:pizza order"
+      ],
+      "context": {
+        "heading": "Pizza order",
+        "headingNorm": "pizza order",
+        "item": "Mushroom",
+        "itemNorm": "mushroom"
+      },
+      "geom": {
+        "docX": 0.3,
+        "docY": 0.66,
+        "vpX": 0.3,
+        "vpY": 0.81,
+        "size": "xs"
+      },
+      "pathNorm": "main>form>fieldset[2]>p[4]>label>input",
+      "frame": ""
+    },
+    {
+      "i": 10,
+      "tag": "select",
+      "role": "combobox",
+      "name": "Preferred delivery time:",
+      "nameNorm": "preferred delivery time:",
+      "stable": {
+        "name": "delivery",
+        "id": "delivery"
+      },
+      "landmarks": [
+        "main",
+        "form:pizza order"
+      ],
+      "context": {
+        "heading": "Pizza order",
+        "headingNorm": "pizza order",
+        "item": "",
+        "itemNorm": ""
+      },
+      "geom": {
+        "docX": 0.5,
+        "docY": 0.74,
+        "vpX": 0.5,
+        "vpY": 0.92,
+        "size": "l"
+      },
+      "pathNorm": "main>form>p[4]>select",
+      "frame": ""
+    },
+    {
+      "i": 11,
+      "tag": "input",
+      "role": "textbox",
+      "name": "Coupon code",
+      "nameNorm": "coupon code",
+      "stable": {
+        "name": "coupon",
+        "type": "text"
+      },
+      "landmarks": [
+        "main",
+        "form:pizza order"
+      ],
+      "context": {
+        "heading": "Pizza order",
+        "headingNorm": "pizza order",
+        "item": "",
+        "itemNorm": ""
+      },
+      "geom": {
+        "docX": 0.51,
+        "docY": 0.78,
+        "vpX": 0.51,
+        "vpY": 0.97,
+        "size": "l"
+      },
+      "pathNorm": "main>form>p[5]>input",
+      "frame": ""
+    },
+    {
+      "i": 12,
+      "tag": "input",
+      "role": "textbox",
+      "name": "Gift message",
+      "nameNorm": "gift message",
+      "stable": {
+        "type": "text"
+      },
+      "landmarks": [
+        "main",
+        "form:pizza order"
+      ],
+      "context": {
+        "heading": "Pizza order",
+        "headingNorm": "pizza order",
+        "item": "",
+        "itemNorm": ""
+      },
+      "geom": {
+        "docX": 0.51,
+        "docY": 0.82,
+        "vpX": 0.51,
+        "vpY": 1.02,
+        "size": "l"
+      },
+      "pathNorm": "main>form>p[6]>input",
+      "frame": ""
+    },
+    {
+      "i": 13,
+      "tag": "textarea",
+      "role": "textbox",
+      "name": "Delivery instructions:",
+      "nameNorm": "delivery instructions:",
+      "stable": {
+        "name": "comments",
+        "id": "comments"
+      },
+      "landmarks": [
+        "main",
+        "form:pizza order"
+      ],
+      "context": {
+        "heading": "Pizza order",
+        "headingNorm": "pizza order",
+        "item": "",
+        "itemNorm": ""
+      },
+      "geom": {
+        "docX": 0.51,
+        "docY": 0.89,
+        "vpX": 0.51,
+        "vpY": 1.11,
+        "size": "l"
+      },
+      "pathNorm": "main>form>p[7]>textarea",
+      "frame": ""
+    },
+    {
+      "i": 14,
+      "tag": "button",
+      "role": "button",
+      "name": "Submit order",
+      "nameNorm": "submit order",
+      "stable": {
+        "type": "submit"
+      },
+      "landmarks": [
+        "main",
+        "form:pizza order"
+      ],
+      "context": {
+        "heading": "Pizza order",
+        "headingNorm": "pizza order",
+        "item": "",
+        "itemNorm": ""
+      },
+      "geom": {
+        "docX": 0.33,
+        "docY": 0.95,
+        "vpX": 0.33,
+        "vpY": 1.18,
+        "size": "m"
+      },
+      "pathNorm": "main>form>p[8]>button",
+      "frame": ""
+    },
+    {
+      "i": 15,
+      "tag": "input",
+      "role": "button",
+      "name": "Clear form",
+      "nameNorm": "clear form",
+      "stable": {
+        "type": "reset"
+      },
+      "landmarks": [
+        "main",
+        "form:pizza order"
+      ],
+      "context": {
+        "heading": "Pizza order",
+        "headingNorm": "pizza order",
+        "item": "",
+        "itemNorm": ""
+      },
+      "geom": {
+        "docX": 0.4,
+        "docY": 0.95,
+        "vpX": 0.4,
+        "vpY": 1.18,
+        "size": "s"
+      },
+      "pathNorm": "main>form>p[8]>input",
+      "frame": ""
+    }
+  ]
+}
