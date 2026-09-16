@@ -21,7 +21,7 @@ import {
 import { configFor, type Routes } from "../src/lib/agent/roles";
 import { matchHost, type Firewall } from "../src/lib/agent/safety";
 import type { AgentAction } from "../src/lib/agent/schema";
-import type { PageIndex } from "../src/lib/page-index";
+import type { ElementDescriptor, PageIndex } from "../src/lib/page-index";
 
 type Reply = Partial<AgentAction> & { action: AgentAction["action"] };
 
@@ -38,6 +38,31 @@ const config = {
 const el = (i: number, role: string, label: string, note = "") => ({
   i, tag: "div", role, label, x: 0, y: 0, w: 10, h: 10, inViewport: true, frame: "", note,
 });
+
+/** A page whose elements carry descriptors, so the loop can track them across reads. */
+function tracked(url: string, elements: ReturnType<typeof el>[]): PageIndex {
+  const descriptors: ElementDescriptor[] = elements.map((e) => ({
+    i: e.i,
+    tag: e.role === "checkbox" ? "input" : "button",
+    role: e.role,
+    name: e.label,
+    nameNorm: e.label.toLowerCase(),
+    stable: {},
+    landmarks: ["main"],
+    context: { heading: "", headingNorm: "", item: "", itemNorm: "" },
+    geom: { docX: 0.5, docY: 0.1 * (e.i + 1), vpX: 0.5, vpY: 0.1 * (e.i + 1), size: "s" },
+    href: "",
+    pathNorm: `main>button[${e.i + 1}]`,
+    frame: "",
+  }));
+  return page(url, { elements, descriptors, totalFound: elements.length });
+}
+
+/** Serves `first` on the first read and `rest` on every read after it. */
+function reads(first: () => PageIndex, rest: () => PageIndex): () => PageIndex {
+  let n = 0;
+  return () => (n++ === 0 ? first() : rest());
+}
 
 function page(url: string, over: Partial<PageIndex> = {}): PageIndex {
   return {
@@ -239,6 +264,61 @@ const cases: Case[] = [
     expect: (o, s) =>
       (ok(o) && /Element \[1\] did nothing/.test(s.prompts[2] ?? "")) ||
       `status ${o.status}\n${s.prompts[2]?.slice(-300)}`,
+  },
+  {
+    // A banner pushed Go from [1] to [2]. By number these are two different
+    // choices; they are the same dead button.
+    name: "the loop breaker follows an element whose number changed",
+    replies: [
+      { action: "click", index: 1 },
+      { action: "click", index: 2 },
+      { action: "click", index: 0 },
+      { action: "done", value: "carried on" },
+    ],
+    page: reads(
+      () => tracked("https://x.test/", [el(0, "textbox", "Search"), el(1, "button", "Go")]),
+      () => tracked("https://x.test/", [el(0, "link", "Shop the sale"), el(1, "textbox", "Search"), el(2, "button", "Go")]),
+    ),
+    expect: (o, s) =>
+      (ok(o) && /Element \[2\] did nothing/.test(s.prompts[2] ?? "")) ||
+      `status ${o.status}\n${s.prompts[2]?.slice(-300)}`,
+  },
+  {
+    name: "a different element under the same number is not a repeat",
+    replies: [
+      { action: "click", index: 1 },
+      { action: "click", index: 1 },
+      { action: "done", value: "fine" },
+    ],
+    page: reads(
+      () => tracked("https://x.test/", [el(0, "textbox", "Search"), el(1, "button", "Go")]),
+      () => tracked("https://x.test/", [el(0, "textbox", "Search"), el(1, "button", "Clear results")]),
+    ),
+    expect: (o, s) => (ok(o) && !/did nothing/.test(s.prompts.join("\n"))) || `status ${o.status}, nudged`,
+  },
+  {
+    name: "ticking a checkbox is not an action that changed nothing",
+    replies: [
+      { action: "click", index: 0 },
+      { action: "done", value: "ticked" },
+    ],
+    page: reads(
+      () => tracked("https://x.test/", [el(0, "checkbox", "Bacon", "unchecked")]),
+      () => tracked("https://x.test/", [el(0, "checkbox", "Bacon", "checked")]),
+    ),
+    expect: (_o, s) => !/Your last action/.test(s.prompts[1] ?? "") || "a toggled checkbox was called a no-op",
+  },
+  {
+    name: "an identical re-render still reads as unchanged",
+    replies: [
+      { action: "click", index: 1 },
+      { action: "click", index: 0 },
+      { action: "done", value: "moved on" },
+    ],
+    page: () => tracked("https://x.test/", [el(0, "textbox", "Search"), el(1, "button", "Go")]),
+    expect: (_o, s) =>
+      /Your last action \(element \[1\]\) changed nothing/.test(s.prompts[1] ?? "") ||
+      `no no-op notice after a re-render:\n${s.prompts[1]?.slice(-300)}`,
   },
   {
     // MakeMyTrip's login popup: the close control has no accessible name, so it

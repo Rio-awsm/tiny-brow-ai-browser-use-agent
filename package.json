@@ -25,6 +25,7 @@
     "check:descriptors": "tsx scripts/check-descriptors.ts",
     "check:matcher": "tsx scripts/check-matcher.ts",
     "check:drift": "tsx scripts/check-drift.ts",
+    "check:slots": "tsx scripts/check-slots.ts",
     "tune:matcher": "tsx scripts/tune-matcher.ts",
     "bench": "tsx harness/index.ts --driver bridge",
     "matrix": "tsx harness/index.ts --compare",

@@ -441,21 +441,35 @@ function rungOf(best: ScoredCandidate, rival: ScoredCandidate | undefined): Sign
 function similarities(candidates: ElementDescriptor[], key: string, query: string): Map<number, number> {
   const out = new Map<number, number>();
   if (query.length < 3) return out;
-  const fuse = new Fuse(candidates, {
-    keys: [key],
-    includeScore: true,
-    ignoreLocation: true,
-    ignoreFieldNorm: true,
-    threshold: 1,
-    useTokenSearch: true,
-    tokenMatch: "any",
-  });
-  for (const r of fuse.search(query)) {
+  for (const r of fuseFor(candidates, key).search(query)) {
     const text = key === "nameNorm" ? r.item.nameNorm : r.item.context.itemNorm;
     const ratio = Math.min(text.length, query.length) / Math.max(text.length, query.length, 1);
     out.set(r.refIndex, (1 - (r.score ?? 1)) * Math.sqrt(ratio));
   }
   return out;
+}
+
+const fuseCache = new WeakMap<ElementDescriptor[], Map<string, Fuse<ElementDescriptor>>>();
+
+/** One index per page and key: matching every element of a page otherwise rebuilds it every time. */
+function fuseFor(candidates: ElementDescriptor[], key: string): Fuse<ElementDescriptor> {
+  let byKey = fuseCache.get(candidates);
+  if (!byKey) fuseCache.set(candidates, (byKey = new Map()));
+  let fuse = byKey.get(key);
+  if (!fuse) {
+    const options = {
+      keys: [key],
+      includeScore: true,
+      ignoreLocation: true,
+      ignoreFieldNorm: true,
+      threshold: 1,
+      useTokenSearch: true,
+      tokenMatch: "any" as const,
+    };
+    fuse = new Fuse(candidates, options, Fuse.createIndex(options.keys, candidates));
+    byKey.set(key, fuse);
+  }
+  return fuse;
 }
 
 /** 1-based position among same-role, same-name descriptors. */
