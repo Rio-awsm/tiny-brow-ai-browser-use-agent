@@ -1,0 +1,89 @@
+{
+  "url": "gauntlet/index.html",
+  "elements": [
+    {
+      "i": 0,
+      "tag": "button",
+      "role": "button",
+      "label": "Accept all cookies",
+      "x": 472,
+      "y": 419,
+      "w": 146,
+      "h": 36,
+      "inViewport": true,
+      "frame": "",
+      "note": ""
+    },
+    {
+      "i": 1,
+      "tag": "button",
+      "role": "button",
+      "label": "Reject non-essential",
+      "x": 626,
+      "y": 419,
+      "w": 161,
+      "h": 36,
+      "inViewport": true,
+      "frame": "",
+      "note": ""
+    }
+  ],
+  "descriptors": [
+    {
+      "i": 0,
+      "tag": "button",
+      "role": "button",
+      "name": "Accept all cookies",
+      "nameNorm": "accept all cookies",
+      "stable": {
+        "type": "submit",
+        "id": "accept-cookies"
+      },
+      "landmarks": [],
+      "context": {
+        "heading": "We value your privacy",
+        "headingNorm": "we value your privacy",
+        "item": "",
+        "itemNorm": ""
+      },
+      "geom": {
+        "docX": 0.43,
+        "docY": 0.55,
+        "vpX": 0.43,
+        "vpY": 0.55,
+        "size": "m"
+      },
+      "href": "",
+      "pathNorm": "div[1]>button[1]",
+      "frame": ""
+    },
+    {
+      "i": 1,
+      "tag": "button",
+      "role": "button",
+      "name": "Reject non-essential",
+      "nameNorm": "reject non-essential",
+      "stable": {
+        "type": "submit",
+        "id": "reject-cookies"
+      },
+      "landmarks": [],
+      "context": {
+        "heading": "We value your privacy",
+        "headingNorm": "we value your privacy",
+        "item": "",
+        "itemNorm": ""
+      },
+      "geom": {
+        "docX": 0.55,
+        "docY": 0.55,
+        "vpX": 0.55,
+        "vpY": 0.55,
+        "size": "m"
+      },
+      "href": "",
+      "pathNorm": "div[1]>button[2]",
+      "frame": ""
+    }
+  ]
+}

@@ -1,0 +1,1535 @@
+{
+  "url": "pages/shop.html",
+  "elements": [
+    {
+      "i": 0,
+      "tag": "a",
+      "role": "link",
+      "label": "",
+      "x": 16,
+      "y": 11,
+      "w": 96,
+      "h": 30,
+      "inViewport": true,
+      "frame": "",
+      "note": ""
+    },
+    {
+      "i": 1,
+      "tag": "input",
+      "role": "textbox",
+      "label": "Search Amazon.in",
+      "x": 128,
+      "y": 10,
+      "w": 793,
+      "h": 31,
+      "inViewport": true,
+      "frame": "",
+      "note": ""
+    },
+    {
+      "i": 2,
+      "tag": "button",
+      "role": "button",
+      "label": "Go",
+      "x": 921,
+      "y": 10,
+      "w": 46,
+      "h": 31,
+      "inViewport": true,
+      "frame": "",
+      "note": ""
+    },
+    {
+      "i": 3,
+      "tag": "a",
+      "role": "link",
+      "label": "Account & Lists",
+      "x": 983,
+      "y": 15,
+      "w": 96,
+      "h": 20,
+      "inViewport": true,
+      "frame": "",
+      "note": ""
+    },
+    {
+      "i": 4,
+      "tag": "a",
+      "role": "link",
+      "label": "Returns & Orders",
+      "x": 1095,
+      "y": 15,
+      "w": 107,
+      "h": 20,
+      "inViewport": true,
+      "frame": "",
+      "note": ""
+    },
+    {
+      "i": 5,
+      "tag": "a",
+      "role": "link",
+      "label": "Cart (3)",
+      "x": 1219,
+      "y": 15,
+      "w": 45,
+      "h": 20,
+      "inViewport": true,
+      "frame": "",
+      "note": ""
+    },
+    {
+      "i": 6,
+      "tag": "a",
+      "role": "link",
+      "label": "Today's Deals",
+      "x": 16,
+      "y": 57,
+      "w": 83,
+      "h": 19,
+      "inViewport": true,
+      "frame": "",
+      "note": ""
+    },
+    {
+      "i": 7,
+      "tag": "a",
+      "role": "link",
+      "label": "Mobiles",
+      "x": 113,
+      "y": 57,
+      "w": 49,
+      "h": 19,
+      "inViewport": true,
+      "frame": "",
+      "note": ""
+    },
+    {
+      "i": 8,
+      "tag": "a",
+      "role": "link",
+      "label": "Fashion",
+      "x": 176,
+      "y": 57,
+      "w": 47,
+      "h": 19,
+      "inViewport": true,
+      "frame": "",
+      "note": ""
+    },
+    {
+      "i": 9,
+      "tag": "a",
+      "role": "link",
+      "label": "Electronics",
+      "x": 237,
+      "y": 57,
+      "w": 66,
+      "h": 19,
+      "inViewport": true,
+      "frame": "",
+      "note": ""
+    },
+    {
+      "i": 10,
+      "tag": "input",
+      "role": "checkbox",
+      "label": "on",
+      "x": 20,
+      "y": 143,
+      "w": 13,
+      "h": 13,
+      "inViewport": true,
+      "frame": "",
+      "note": "unchecked"
+    },
+    {
+      "i": 11,
+      "tag": "input",
+      "role": "checkbox",
+      "label": "on",
+      "x": 20,
+      "y": 168,
+      "w": 13,
+      "h": 13,
+      "inViewport": true,
+      "frame": "",
+      "note": "unchecked"
+    },
+    {
+      "i": 12,
+      "tag": "input",
+      "role": "checkbox",
+      "label": "on",
+      "x": 20,
+      "y": 193,
+      "w": 13,
+      "h": 13,
+      "inViewport": true,
+      "frame": "",
+      "note": "unchecked"
+    },
+    {
+      "i": 13,
+      "tag": "input",
+      "role": "spinbutton",
+      "label": "Min",
+      "x": 16,
+      "y": 276,
+      "w": 177,
+      "h": 21,
+      "inViewport": true,
+      "frame": "",
+      "note": "number"
+    },
+    {
+      "i": 14,
+      "tag": "input",
+      "role": "spinbutton",
+      "label": "Max",
+      "x": 16,
+      "y": 321,
+      "w": 177,
+      "h": 21,
+      "inViewport": true,
+      "frame": "",
+      "note": "number"
+    },
+    {
+      "i": 15,
+      "tag": "a",
+      "role": "link",
+      "label": "Logitech M235 Wireless Mouse, 1000 DPI",
+      "x": 269,
+      "y": 318,
+      "w": 162,
+      "h": 42,
+      "inViewport": true,
+      "frame": "",
+      "note": ""
+    },
+    {
+      "i": 16,
+      "tag": "button",
+      "role": "button",
+      "label": "Add to cart",
+      "x": 269,
+      "y": 400,
+      "w": 90,
+      "h": 32,
+      "inViewport": true,
+      "frame": "",
+      "note": ""
+    },
+    {
+      "i": 17,
+      "tag": "button",
+      "role": "button",
+      "label": "Add to wish list",
+      "x": 367,
+      "y": 400,
+      "w": 32,
+      "h": 32,
+      "inViewport": true,
+      "frame": "",
+      "note": ""
+    },
+    {
+      "i": 18,
+      "tag": "a",
+      "role": "link",
+      "label": "Dell MS116 Optical Wired Mouse",
+      "x": 525,
+      "y": 318,
+      "w": 171,
+      "h": 42,
+      "inViewport": true,
+      "frame": "",
+      "note": ""
+    },
+    {
+      "i": 19,
+      "tag": "button",
+      "role": "button",
+      "label": "Add to cart",
+      "x": 525,
+      "y": 400,
+      "w": 90,
+      "h": 32,
+      "inViewport": true,
+      "frame": "",
+      "note": ""
+    },
+    {
+      "i": 20,
+      "tag": "button",
+      "role": "button",
+      "label": "Add to wish list",
+      "x": 623,
+      "y": 400,
+      "w": 32,
+      "h": 32,
+      "inViewport": true,
+      "frame": "",
+      "note": ""
+    },
+    {
+      "i": 21,
+      "tag": "a",
+      "role": "link",
+      "label": "HP X200 Wireless Mouse, 2.4 GHz",
+      "x": 781,
+      "y": 318,
+      "w": 197,
+      "h": 42,
+      "inViewport": true,
+      "frame": "",
+      "note": ""
+    },
+    {
+      "i": 22,
+      "tag": "button",
+      "role": "button",
+      "label": "Add to cart",
+      "x": 781,
+      "y": 400,
+      "w": 90,
+      "h": 32,
+      "inViewport": true,
+      "frame": "",
+      "note": ""
+    },
+    {
+      "i": 23,
+      "tag": "button",
+      "role": "button",
+      "label": "Add to wish list",
+      "x": 879,
+      "y": 400,
+      "w": 32,
+      "h": 32,
+      "inViewport": true,
+      "frame": "",
+      "note": ""
+    },
+    {
+      "i": 24,
+      "tag": "a",
+      "role": "link",
+      "label": "Zebronics Zeb-Transformer Wireless Mouse",
+      "x": 1037,
+      "y": 318,
+      "w": 184,
+      "h": 42,
+      "inViewport": true,
+      "frame": "",
+      "note": ""
+    },
+    {
+      "i": 25,
+      "tag": "button",
+      "role": "button",
+      "label": "Add to cart",
+      "x": 1037,
+      "y": 400,
+      "w": 90,
+      "h": 32,
+      "inViewport": true,
+      "frame": "",
+      "note": ""
+    },
+    {
+      "i": 26,
+      "tag": "button",
+      "role": "button",
+      "label": "Add to wish list",
+      "x": 1135,
+      "y": 400,
+      "w": 32,
+      "h": 32,
+      "inViewport": true,
+      "frame": "",
+      "note": ""
+    },
+    {
+      "i": 27,
+      "tag": "div",
+      "role": "div",
+      "label": "More results",
+      "x": 256,
+      "y": 445,
+      "w": 1008,
+      "h": 52,
+      "inViewport": true,
+      "frame": "",
+      "note": ""
+    },
+    {
+      "i": 28,
+      "tag": "span",
+      "role": "span",
+      "label": "See more results",
+      "x": 256,
+      "y": 461,
+      "w": 102,
+      "h": 20,
+      "inViewport": true,
+      "frame": "",
+      "note": ""
+    },
+    {
+      "i": 29,
+      "tag": "a",
+      "role": "link",
+      "label": "Previous",
+      "x": 256,
+      "y": 497,
+      "w": 74,
+      "h": 34,
+      "inViewport": true,
+      "frame": "",
+      "note": ""
+    },
+    {
+      "i": 30,
+      "tag": "a",
+      "role": "link",
+      "label": "1",
+      "x": 336,
+      "y": 497,
+      "w": 30,
+      "h": 34,
+      "inViewport": true,
+      "frame": "",
+      "note": ""
+    },
+    {
+      "i": 31,
+      "tag": "a",
+      "role": "link",
+      "label": "2",
+      "x": 372,
+      "y": 497,
+      "w": 30,
+      "h": 34,
+      "inViewport": true,
+      "frame": "",
+      "note": ""
+    },
+    {
+      "i": 32,
+      "tag": "a",
+      "role": "link",
+      "label": "3",
+      "x": 407,
+      "y": 497,
+      "w": 30,
+      "h": 34,
+      "inViewport": true,
+      "frame": "",
+      "note": ""
+    },
+    {
+      "i": 33,
+      "tag": "a",
+      "role": "link",
+      "label": "Next",
+      "x": 443,
+      "y": 497,
+      "w": 51,
+      "h": 34,
+      "inViewport": true,
+      "frame": "",
+      "note": ""
+    },
+    {
+      "i": 34,
+      "tag": "a",
+      "role": "link",
+      "label": "Back to top",
+      "x": 16,
+      "y": 572,
+      "w": 70,
+      "h": 19,
+      "inViewport": true,
+      "frame": "",
+      "note": ""
+    },
+    {
+      "i": 35,
+      "tag": "a",
+      "role": "link",
+      "label": "About Us",
+      "x": 106,
+      "y": 572,
+      "w": 58,
+      "h": 19,
+      "inViewport": true,
+      "frame": "",
+      "note": ""
+    },
+    {
+      "i": 36,
+      "tag": "a",
+      "role": "link",
+      "label": "Careers",
+      "x": 184,
+      "y": 572,
+      "w": 46,
+      "h": 19,
+      "inViewport": true,
+      "frame": "",
+      "note": ""
+    }
+  ],
+  "descriptors": [
+    {
+      "i": 0,
+      "tag": "a",
+      "role": "link",
+      "name": "Amazon.in",
+      "nameNorm": "amazon.in",
+      "stable": {},
+      "landmarks": [
+        "header"
+      ],
+      "context": {
+        "heading": "",
+        "headingNorm": "",
+        "item": "",
+        "itemNorm": ""
+      },
+      "geom": {
+        "docX": 0.05,
+        "docY": 0.03,
+        "vpX": 0.05,
+        "vpY": 0.03,
+        "size": "m"
+      },
+      "href": "/pages/shop.html",
+      "pathNorm": "header>a[1]",
+      "frame": ""
+    },
+    {
+      "i": 1,
+      "tag": "input",
+      "role": "textbox",
+      "name": "Search Amazon.in",
+      "nameNorm": "search amazon.in",
+      "stable": {
+        "name": "field-keywords",
+        "type": "text",
+        "id": "twotabsearchtextbox"
+      },
+      "landmarks": [
+        "header",
+        "search:search amazon.in"
+      ],
+      "context": {
+        "heading": "",
+        "headingNorm": "",
+        "item": "",
+        "itemNorm": ""
+      },
+      "geom": {
+        "docX": 0.41,
+        "docY": 0.03,
+        "vpX": 0.41,
+        "vpY": 0.03,
+        "size": "l"
+      },
+      "href": "",
+      "pathNorm": "header>form>input",
+      "frame": ""
+    },
+    {
+      "i": 2,
+      "tag": "button",
+      "role": "button",
+      "name": "Go",
+      "nameNorm": "go",
+      "stable": {
+        "type": "submit",
+        "id": "nav-search-submit-button"
+      },
+      "landmarks": [
+        "header",
+        "search:search amazon.in"
+      ],
+      "context": {
+        "heading": "",
+        "headingNorm": "",
+        "item": "",
+        "itemNorm": ""
+      },
+      "geom": {
+        "docX": 0.74,
+        "docY": 0.03,
+        "vpX": 0.74,
+        "vpY": 0.03,
+        "size": "s"
+      },
+      "href": "",
+      "pathNorm": "header>form>button",
+      "frame": ""
+    },
+    {
+      "i": 3,
+      "tag": "a",
+      "role": "link",
+      "name": "Account & Lists",
+      "nameNorm": "account & lists",
+      "stable": {},
+      "landmarks": [
+        "header"
+      ],
+      "context": {
+        "heading": "",
+        "headingNorm": "",
+        "item": "",
+        "itemNorm": ""
+      },
+      "geom": {
+        "docX": 0.81,
+        "docY": 0.03,
+        "vpX": 0.81,
+        "vpY": 0.03,
+        "size": "s"
+      },
+      "href": "/pages/shop.html#account",
+      "pathNorm": "header>a[2]",
+      "frame": ""
+    },
+    {
+      "i": 4,
+      "tag": "a",
+      "role": "link",
+      "name": "Returns & Orders",
+      "nameNorm": "returns & orders",
+      "stable": {
+        "id": "nav-orders"
+      },
+      "landmarks": [
+        "header"
+      ],
+      "context": {
+        "heading": "",
+        "headingNorm": "",
+        "item": "",
+        "itemNorm": ""
+      },
+      "geom": {
+        "docX": 0.9,
+        "docY": 0.03,
+        "vpX": 0.9,
+        "vpY": 0.03,
+        "size": "s"
+      },
+      "href": "/pages/shop.html#orders",
+      "pathNorm": "header>a[3]",
+      "frame": ""
+    },
+    {
+      "i": 5,
+      "tag": "a",
+      "role": "link",
+      "name": "Cart (3)",
+      "nameNorm": "cart",
+      "stable": {
+        "data-testid": "nav-cart"
+      },
+      "landmarks": [
+        "header"
+      ],
+      "context": {
+        "heading": "",
+        "headingNorm": "",
+        "item": "",
+        "itemNorm": ""
+      },
+      "geom": {
+        "docX": 0.97,
+        "docY": 0.03,
+        "vpX": 0.97,
+        "vpY": 0.03,
+        "size": "s"
+      },
+      "href": "/pages/shop.html#cart",
+      "pathNorm": "header>a[4]",
+      "frame": ""
+    },
+    {
+      "i": 6,
+      "tag": "a",
+      "role": "link",
+      "name": "Today's Deals",
+      "nameNorm": "today's deals",
+      "stable": {},
+      "landmarks": [
+        "nav:primary"
+      ],
+      "context": {
+        "heading": "",
+        "headingNorm": "",
+        "item": "Today's Deals",
+        "itemNorm": "today's deals"
+      },
+      "geom": {
+        "docX": 0.04,
+        "docY": 0.08,
+        "vpX": 0.04,
+        "vpY": 0.08,
+        "size": "s"
+      },
+      "href": "/pages/shop.html#deals",
+      "pathNorm": "nav>ul>li[1]>a",
+      "frame": ""
+    },
+    {
+      "i": 7,
+      "tag": "a",
+      "role": "link",
+      "name": "Mobiles",
+      "nameNorm": "mobiles",
+      "stable": {},
+      "landmarks": [
+        "nav:primary"
+      ],
+      "context": {
+        "heading": "",
+        "headingNorm": "",
+        "item": "Mobiles",
+        "itemNorm": "mobiles"
+      },
+      "geom": {
+        "docX": 0.11,
+        "docY": 0.08,
+        "vpX": 0.11,
+        "vpY": 0.08,
+        "size": "s"
+      },
+      "href": "/pages/shop.html#mobiles",
+      "pathNorm": "nav>ul>li[2]>a",
+      "frame": ""
+    },
+    {
+      "i": 8,
+      "tag": "a",
+      "role": "link",
+      "name": "Fashion",
+      "nameNorm": "fashion",
+      "stable": {},
+      "landmarks": [
+        "nav:primary"
+      ],
+      "context": {
+        "heading": "",
+        "headingNorm": "",
+        "item": "Fashion",
+        "itemNorm": "fashion"
+      },
+      "geom": {
+        "docX": 0.16,
+        "docY": 0.08,
+        "vpX": 0.16,
+        "vpY": 0.08,
+        "size": "s"
+      },
+      "href": "/pages/shop.html#fashion",
+      "pathNorm": "nav>ul>li[3]>a",
+      "frame": ""
+    },
+    {
+      "i": 9,
+      "tag": "a",
+      "role": "link",
+      "name": "Electronics",
+      "nameNorm": "electronics",
+      "stable": {},
+      "landmarks": [
+        "nav:primary"
+      ],
+      "context": {
+        "heading": "",
+        "headingNorm": "",
+        "item": "Electronics",
+        "itemNorm": "electronics"
+      },
+      "geom": {
+        "docX": 0.21,
+        "docY": 0.08,
+        "vpX": 0.21,
+        "vpY": 0.08,
+        "size": "s"
+      },
+      "href": "/pages/shop.html#electronics",
+      "pathNorm": "nav>ul>li[4]>a",
+      "frame": ""
+    },
+    {
+      "i": 10,
+      "tag": "input",
+      "role": "checkbox",
+      "name": "Logitech",
+      "nameNorm": "logitech",
+      "stable": {
+        "type": "checkbox"
+      },
+      "landmarks": [
+        "aside:filters"
+      ],
+      "context": {
+        "heading": "Brands",
+        "headingNorm": "brands",
+        "item": "Logitech",
+        "itemNorm": "logitech"
+      },
+      "geom": {
+        "docX": 0.02,
+        "docY": 0.19,
+        "vpX": 0.02,
+        "vpY": 0.19,
+        "size": "xs"
+      },
+      "href": "",
+      "pathNorm": "aside>label[1]>input",
+      "frame": ""
+    },
+    {
+      "i": 11,
+      "tag": "input",
+      "role": "checkbox",
+      "name": "HP",
+      "nameNorm": "hp",
+      "stable": {
+        "type": "checkbox"
+      },
+      "landmarks": [
+        "aside:filters"
+      ],
+      "context": {
+        "heading": "Brands",
+        "headingNorm": "brands",
+        "item": "HP",
+        "itemNorm": "hp"
+      },
+      "geom": {
+        "docX": 0.02,
+        "docY": 0.22,
+        "vpX": 0.02,
+        "vpY": 0.22,
+        "size": "xs"
+      },
+      "href": "",
+      "pathNorm": "aside>label[2]>input",
+      "frame": ""
+    },
+    {
+      "i": 12,
+      "tag": "input",
+      "role": "checkbox",
+      "name": "Dell",
+      "nameNorm": "dell",
+      "stable": {
+        "type": "checkbox"
+      },
+      "landmarks": [
+        "aside:filters"
+      ],
+      "context": {
+        "heading": "Brands",
+        "headingNorm": "brands",
+        "item": "Dell",
+        "itemNorm": "dell"
+      },
+      "geom": {
+        "docX": 0.02,
+        "docY": 0.25,
+        "vpX": 0.02,
+        "vpY": 0.25,
+        "size": "xs"
+      },
+      "href": "",
+      "pathNorm": "aside>label[3]>input",
+      "frame": ""
+    },
+    {
+      "i": 13,
+      "tag": "input",
+      "role": "spinbutton",
+      "name": "Min",
+      "nameNorm": "min",
+      "stable": {
+        "name": "low-price",
+        "type": "number",
+        "id": "lowPrice"
+      },
+      "landmarks": [
+        "aside:filters"
+      ],
+      "context": {
+        "heading": "Price",
+        "headingNorm": "price",
+        "item": "",
+        "itemNorm": ""
+      },
+      "geom": {
+        "docX": 0.08,
+        "docY": 0.36,
+        "vpX": 0.08,
+        "vpY": 0.36,
+        "size": "m"
+      },
+      "href": "",
+      "pathNorm": "aside>input[1]",
+      "frame": ""
+    },
+    {
+      "i": 14,
+      "tag": "input",
+      "role": "spinbutton",
+      "name": "Max",
+      "nameNorm": "max",
+      "stable": {
+        "name": "high-price",
+        "type": "number",
+        "id": "highPrice"
+      },
+      "landmarks": [
+        "aside:filters"
+      ],
+      "context": {
+        "heading": "Price",
+        "headingNorm": "price",
+        "item": "",
+        "itemNorm": ""
+      },
+      "geom": {
+        "docX": 0.08,
+        "docY": 0.41,
+        "vpX": 0.08,
+        "vpY": 0.41,
+        "size": "m"
+      },
+      "href": "",
+      "pathNorm": "aside>input[2]",
+      "frame": ""
+    },
+    {
+      "i": 15,
+      "tag": "a",
+      "role": "link",
+      "name": "Logitech M235 Wireless Mouse, 1000 DPI",
+      "nameNorm": "logitech m235 wireless mouse, 1000 dpi",
+      "stable": {},
+      "landmarks": [
+        "main"
+      ],
+      "context": {
+        "heading": "Logitech M235 Wireless Mouse, 1000 DPI",
+        "headingNorm": "logitech m235 wireless mouse, 1000 dpi",
+        "item": "Logitech M235 Wireless Mouse, 1000 DPI ₹795 Add to cart ♡",
+        "itemNorm": "logitech m235 wireless mouse, 1000 dpi ₹795 add to cart ♡"
+      },
+      "geom": {
+        "docX": 0.27,
+        "docY": 0.42,
+        "vpX": 0.27,
+        "vpY": 0.42,
+        "size": "m"
+      },
+      "href": "/dp/B07W4DHNBS?keywords=wireless+mouse",
+      "pathNorm": "main>div[1]>div[1]>h2>a",
+      "frame": ""
+    },
+    {
+      "i": 16,
+      "tag": "button",
+      "role": "button",
+      "name": "Add to cart",
+      "nameNorm": "add to cart",
+      "stable": {
+        "type": "submit"
+      },
+      "landmarks": [
+        "main"
+      ],
+      "context": {
+        "heading": "Logitech M235 Wireless Mouse, 1000 DPI",
+        "headingNorm": "logitech m235 wireless mouse, 1000 dpi",
+        "item": "Logitech M235 Wireless Mouse, 1000 DPI ₹795 Add to cart ♡",
+        "itemNorm": "logitech m235 wireless mouse, 1000 dpi ₹795 add to cart ♡"
+      },
+      "geom": {
+        "docX": 0.25,
+        "docY": 0.52,
+        "vpX": 0.25,
+        "vpY": 0.52,
+        "size": "m"
+      },
+      "href": "",
+      "pathNorm": "main>div[1]>div[1]>button[1]",
+      "frame": ""
+    },
+    {
+      "i": 17,
+      "tag": "button",
+      "role": "button",
+      "name": "Add to wish list",
+      "nameNorm": "add to wish list",
+      "stable": {
+        "type": "submit"
+      },
+      "landmarks": [
+        "main"
+      ],
+      "context": {
+        "heading": "Logitech M235 Wireless Mouse, 1000 DPI",
+        "headingNorm": "logitech m235 wireless mouse, 1000 dpi",
+        "item": "Logitech M235 Wireless Mouse, 1000 DPI ₹795 Add to cart ♡",
+        "itemNorm": "logitech m235 wireless mouse, 1000 dpi ₹795 add to cart ♡"
+      },
+      "geom": {
+        "docX": 0.3,
+        "docY": 0.52,
+        "vpX": 0.3,
+        "vpY": 0.52,
+        "size": "s"
+      },
+      "href": "",
+      "pathNorm": "main>div[1]>div[1]>button[2]",
+      "frame": ""
+    },
+    {
+      "i": 18,
+      "tag": "a",
+      "role": "link",
+      "name": "Dell MS116 Optical Wired Mouse",
+      "nameNorm": "dell ms116 optical wired mouse",
+      "stable": {},
+      "landmarks": [
+        "main"
+      ],
+      "context": {
+        "heading": "Dell MS116 Optical Wired Mouse",
+        "headingNorm": "dell ms116 optical wired mouse",
+        "item": "Dell MS116 Optical Wired Mouse ₹549 Add to cart ♡",
+        "itemNorm": "dell ms116 optical wired mouse ₹549 add to cart ♡"
+      },
+      "geom": {
+        "docX": 0.48,
+        "docY": 0.42,
+        "vpX": 0.48,
+        "vpY": 0.42,
+        "size": "m"
+      },
+      "href": "/pages/shop.html#p2",
+      "pathNorm": "main>div[1]>div[2]>h2>a",
+      "frame": ""
+    },
+    {
+      "i": 19,
+      "tag": "button",
+      "role": "button",
+      "name": "Add to cart",
+      "nameNorm": "add to cart",
+      "stable": {
+        "type": "submit"
+      },
+      "landmarks": [
+        "main"
+      ],
+      "context": {
+        "heading": "Dell MS116 Optical Wired Mouse",
+        "headingNorm": "dell ms116 optical wired mouse",
+        "item": "Dell MS116 Optical Wired Mouse ₹549 Add to cart ♡",
+        "itemNorm": "dell ms116 optical wired mouse ₹549 add to cart ♡"
+      },
+      "geom": {
+        "docX": 0.45,
+        "docY": 0.52,
+        "vpX": 0.45,
+        "vpY": 0.52,
+        "size": "m"
+      },
+      "href": "",
+      "pathNorm": "main>div[1]>div[2]>button[1]",
+      "frame": ""
+    },
+    {
+      "i": 20,
+      "tag": "button",
+      "role": "button",
+      "name": "Add to wish list",
+      "nameNorm": "add to wish list",
+      "stable": {
+        "type": "submit"
+      },
+      "landmarks": [
+        "main"
+      ],
+      "context": {
+        "heading": "Dell MS116 Optical Wired Mouse",
+        "headingNorm": "dell ms116 optical wired mouse",
+        "item": "Dell MS116 Optical Wired Mouse ₹549 Add to cart ♡",
+        "itemNorm": "dell ms116 optical wired mouse ₹549 add to cart ♡"
+      },
+      "geom": {
+        "docX": 0.5,
+        "docY": 0.52,
+        "vpX": 0.5,
+        "vpY": 0.52,
+        "size": "s"
+      },
+      "href": "",
+      "pathNorm": "main>div[1]>div[2]>button[2]",
+      "frame": ""
+    },
+    {
+      "i": 21,
+      "tag": "a",
+      "role": "link",
+      "name": "HP X200 Wireless Mouse, 2.4 GHz",
+      "nameNorm": "hp x200 wireless mouse, 2.4 ghz",
+      "stable": {},
+      "landmarks": [
+        "main"
+      ],
+      "context": {
+        "heading": "HP X200 Wireless Mouse, 2.4 GHz",
+        "headingNorm": "hp x200 wireless mouse, 2.4 ghz",
+        "item": "HP X200 Wireless Mouse, 2.4 GHz ₹649 Add to cart ♡",
+        "itemNorm": "hp x200 wireless mouse, 2.4 ghz ₹649 add to cart ♡"
+      },
+      "geom": {
+        "docX": 0.69,
+        "docY": 0.42,
+        "vpX": 0.69,
+        "vpY": 0.42,
+        "size": "m"
+      },
+      "href": "/pages/shop.html#p3",
+      "pathNorm": "main>div[1]>div[3]>h2>a",
+      "frame": ""
+    },
+    {
+      "i": 22,
+      "tag": "button",
+      "role": "button",
+      "name": "Add to cart",
+      "nameNorm": "add to cart",
+      "stable": {
+        "type": "submit"
+      },
+      "landmarks": [
+        "main"
+      ],
+      "context": {
+        "heading": "HP X200 Wireless Mouse, 2.4 GHz",
+        "headingNorm": "hp x200 wireless mouse, 2.4 ghz",
+        "item": "HP X200 Wireless Mouse, 2.4 GHz ₹649 Add to cart ♡",
+        "itemNorm": "hp x200 wireless mouse, 2.4 ghz ₹649 add to cart ♡"
+      },
+      "geom": {
+        "docX": 0.65,
+        "docY": 0.52,
+        "vpX": 0.65,
+        "vpY": 0.52,
+        "size": "m"
+      },
+      "href": "",
+      "pathNorm": "main>div[1]>div[3]>button[1]",
+      "frame": ""
+    },
+    {
+      "i": 23,
+      "tag": "button",
+      "role": "button",
+      "name": "Add to wish list",
+      "nameNorm": "add to wish list",
+      "stable": {
+        "type": "submit"
+      },
+      "landmarks": [
+        "main"
+      ],
+      "context": {
+        "heading": "HP X200 Wireless Mouse, 2.4 GHz",
+        "headingNorm": "hp x200 wireless mouse, 2.4 ghz",
+        "item": "HP X200 Wireless Mouse, 2.4 GHz ₹649 Add to cart ♡",
+        "itemNorm": "hp x200 wireless mouse, 2.4 ghz ₹649 add to cart ♡"
+      },
+      "geom": {
+        "docX": 0.7,
+        "docY": 0.52,
+        "vpX": 0.7,
+        "vpY": 0.52,
+        "size": "s"
+      },
+      "href": "",
+      "pathNorm": "main>div[1]>div[3]>button[2]",
+      "frame": ""
+    },
+    {
+      "i": 24,
+      "tag": "a",
+      "role": "link",
+      "name": "Zebronics Zeb-Transformer Wireless Mouse",
+      "nameNorm": "zebronics zeb-transformer wireless mouse",
+      "stable": {},
+      "landmarks": [
+        "main"
+      ],
+      "context": {
+        "heading": "Zebronics Zeb-Transformer Wireless Mouse",
+        "headingNorm": "zebronics zeb-transformer wireless mouse",
+        "item": "Zebronics Zeb-Transformer Wireless Mouse ₹399 Add to cart ♡",
+        "itemNorm": "zebronics zeb-transformer wireless mouse ₹399 add to cart ♡"
+      },
+      "geom": {
+        "docX": 0.88,
+        "docY": 0.42,
+        "vpX": 0.88,
+        "vpY": 0.42,
+        "size": "m"
+      },
+      "href": "/pages/shop.html#p4",
+      "pathNorm": "main>div[1]>div[4]>h2>a",
+      "frame": ""
+    },
+    {
+      "i": 25,
+      "tag": "button",
+      "role": "button",
+      "name": "Add to cart",
+      "nameNorm": "add to cart",
+      "stable": {
+        "type": "submit"
+      },
+      "landmarks": [
+        "main"
+      ],
+      "context": {
+        "heading": "Zebronics Zeb-Transformer Wireless Mouse",
+        "headingNorm": "zebronics zeb-transformer wireless mouse",
+        "item": "Zebronics Zeb-Transformer Wireless Mouse ₹399 Add to cart ♡",
+        "itemNorm": "zebronics zeb-transformer wireless mouse ₹399 add to cart ♡"
+      },
+      "geom": {
+        "docX": 0.85,
+        "docY": 0.52,
+        "vpX": 0.85,
+        "vpY": 0.52,
+        "size": "m"
+      },
+      "href": "",
+      "pathNorm": "main>div[1]>div[4]>button[1]",
+      "frame": ""
+    },
+    {
+      "i": 26,
+      "tag": "button",
+      "role": "button",
+      "name": "Add to wish list",
+      "nameNorm": "add to wish list",
+      "stable": {
+        "type": "submit"
+      },
+      "landmarks": [
+        "main"
+      ],
+      "context": {
+        "heading": "Zebronics Zeb-Transformer Wireless Mouse",
+        "headingNorm": "zebronics zeb-transformer wireless mouse",
+        "item": "Zebronics Zeb-Transformer Wireless Mouse ₹399 Add to cart ♡",
+        "itemNorm": "zebronics zeb-transformer wireless mouse ₹399 add to cart ♡"
+      },
+      "geom": {
+        "docX": 0.9,
+        "docY": 0.52,
+        "vpX": 0.9,
+        "vpY": 0.52,
+        "size": "s"
+      },
+      "href": "",
+      "pathNorm": "main>div[1]>div[4]>button[2]",
+      "frame": ""
+    },
+    {
+      "i": 27,
+      "tag": "div",
+      "role": "div",
+      "name": "More results",
+      "nameNorm": "more results",
+      "stable": {},
+      "landmarks": [
+        "main"
+      ],
+      "context": {
+        "heading": "Zebronics Zeb-Transformer Wireless Mouse",
+        "headingNorm": "zebronics zeb-transformer wireless mouse",
+        "item": "",
+        "itemNorm": ""
+      },
+      "geom": {
+        "docX": 0.59,
+        "docY": 0.59,
+        "vpX": 0.59,
+        "vpY": 0.59,
+        "size": "xl"
+      },
+      "href": "",
+      "pathNorm": "main>div[2]",
+      "frame": ""
+    },
+    {
+      "i": 28,
+      "tag": "span",
+      "role": "span",
+      "name": "See more results",
+      "nameNorm": "see more results",
+      "stable": {},
+      "landmarks": [
+        "main"
+      ],
+      "context": {
+        "heading": "Zebronics Zeb-Transformer Wireless Mouse",
+        "headingNorm": "zebronics zeb-transformer wireless mouse",
+        "item": "",
+        "itemNorm": ""
+      },
+      "geom": {
+        "docX": 0.24,
+        "docY": 0.59,
+        "vpX": 0.24,
+        "vpY": 0.59,
+        "size": "s"
+      },
+      "href": "",
+      "pathNorm": "main>div[2]>span",
+      "frame": ""
+    },
+    {
+      "i": 29,
+      "tag": "a",
+      "role": "link",
+      "name": "Previous",
+      "nameNorm": "previous",
+      "stable": {},
+      "landmarks": [
+        "main",
+        "nav:pagination"
+      ],
+      "context": {
+        "heading": "Zebronics Zeb-Transformer Wireless Mouse",
+        "headingNorm": "zebronics zeb-transformer wireless mouse",
+        "item": "",
+        "itemNorm": ""
+      },
+      "geom": {
+        "docX": 0.23,
+        "docY": 0.64,
+        "vpX": 0.23,
+        "vpY": 0.64,
+        "size": "m"
+      },
+      "href": "/pages/shop.html#prev",
+      "pathNorm": "main>nav>a[1]",
+      "frame": ""
+    },
+    {
+      "i": 30,
+      "tag": "a",
+      "role": "link",
+      "name": "1",
+      "nameNorm": "1",
+      "stable": {},
+      "landmarks": [
+        "main",
+        "nav:pagination"
+      ],
+      "context": {
+        "heading": "Zebronics Zeb-Transformer Wireless Mouse",
+        "headingNorm": "zebronics zeb-transformer wireless mouse",
+        "item": "",
+        "itemNorm": ""
+      },
+      "geom": {
+        "docX": 0.27,
+        "docY": 0.64,
+        "vpX": 0.27,
+        "vpY": 0.64,
+        "size": "s"
+      },
+      "href": "/pages/shop.html#1",
+      "pathNorm": "main>nav>a[2]",
+      "frame": ""
+    },
+    {
+      "i": 31,
+      "tag": "a",
+      "role": "link",
+      "name": "2",
+      "nameNorm": "2",
+      "stable": {},
+      "landmarks": [
+        "main",
+        "nav:pagination"
+      ],
+      "context": {
+        "heading": "Zebronics Zeb-Transformer Wireless Mouse",
+        "headingNorm": "zebronics zeb-transformer wireless mouse",
+        "item": "",
+        "itemNorm": ""
+      },
+      "geom": {
+        "docX": 0.3,
+        "docY": 0.64,
+        "vpX": 0.3,
+        "vpY": 0.64,
+        "size": "s"
+      },
+      "href": "/pages/shop.html#2",
+      "pathNorm": "main>nav>a[3]",
+      "frame": ""
+    },
+    {
+      "i": 32,
+      "tag": "a",
+      "role": "link",
+      "name": "3",
+      "nameNorm": "3",
+      "stable": {},
+      "landmarks": [
+        "main",
+        "nav:pagination"
+      ],
+      "context": {
+        "heading": "Zebronics Zeb-Transformer Wireless Mouse",
+        "headingNorm": "zebronics zeb-transformer wireless mouse",
+        "item": "",
+        "itemNorm": ""
+      },
+      "geom": {
+        "docX": 0.33,
+        "docY": 0.64,
+        "vpX": 0.33,
+        "vpY": 0.64,
+        "size": "s"
+      },
+      "href": "/pages/shop.html#3",
+      "pathNorm": "main>nav>a[4]",
+      "frame": ""
+    },
+    {
+      "i": 33,
+      "tag": "a",
+      "role": "link",
+      "name": "Next",
+      "nameNorm": "next",
+      "stable": {},
+      "landmarks": [
+        "main",
+        "nav:pagination"
+      ],
+      "context": {
+        "heading": "Zebronics Zeb-Transformer Wireless Mouse",
+        "headingNorm": "zebronics zeb-transformer wireless mouse",
+        "item": "",
+        "itemNorm": ""
+      },
+      "geom": {
+        "docX": 0.37,
+        "docY": 0.64,
+        "vpX": 0.37,
+        "vpY": 0.64,
+        "size": "s"
+      },
+      "href": "/pages/shop.html#next",
+      "pathNorm": "main>nav>a[5]",
+      "frame": ""
+    },
+    {
+      "i": 34,
+      "tag": "a",
+      "role": "link",
+      "name": "Back to top",
+      "nameNorm": "back to top",
+      "stable": {},
+      "landmarks": [
+        "footer"
+      ],
+      "context": {
+        "heading": "Zebronics Zeb-Transformer Wireless Mouse",
+        "headingNorm": "zebronics zeb-transformer wireless mouse",
+        "item": "",
+        "itemNorm": ""
+      },
+      "geom": {
+        "docX": 0.04,
+        "docY": 0.73,
+        "vpX": 0.04,
+        "vpY": 0.73,
+        "size": "s"
+      },
+      "href": "/pages/shop.html#top",
+      "pathNorm": "footer>a[1]",
+      "frame": ""
+    },
+    {
+      "i": 35,
+      "tag": "a",
+      "role": "link",
+      "name": "About Us",
+      "nameNorm": "about us",
+      "stable": {},
+      "landmarks": [
+        "footer"
+      ],
+      "context": {
+        "heading": "Zebronics Zeb-Transformer Wireless Mouse",
+        "headingNorm": "zebronics zeb-transformer wireless mouse",
+        "item": "",
+        "itemNorm": ""
+      },
+      "geom": {
+        "docX": 0.11,
+        "docY": 0.73,
+        "vpX": 0.11,
+        "vpY": 0.73,
+        "size": "s"
+      },
+      "href": "/pages/shop.html#about",
+      "pathNorm": "footer>a[2]",
+      "frame": ""
+    },
+    {
+      "i": 36,
+      "tag": "a",
+      "role": "link",
+      "name": "Careers",
+      "nameNorm": "careers",
+      "stable": {},
+      "landmarks": [
+        "footer"
+      ],
+      "context": {
+        "heading": "Zebronics Zeb-Transformer Wireless Mouse",
+        "headingNorm": "zebronics zeb-transformer wireless mouse",
+        "item": "",
+        "itemNorm": ""
+      },
+      "geom": {
+        "docX": 0.16,
+        "docY": 0.73,
+        "vpX": 0.16,
+        "vpY": 0.73,
+        "size": "s"
+      },
+      "href": "/pages/shop.html#careers",
+      "pathNorm": "footer>a[3]",
+      "frame": ""
+    }
+  ]
+}

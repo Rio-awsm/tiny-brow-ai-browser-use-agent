@@ -8,6 +8,7 @@ import { gate, injectionSpans, DEFAULT_FIREWALL, type Firewall, type Judgement }
 import { validateAnswer } from "./validator";
 import { historyLine, type HistoryEntry } from "./prompt";
 import { isTerminal, type AgentAction } from "./schema";
+import { SlotTracker, slotOfIndex } from "@/lib/identity/slots";
 
 export type RunStatus =
   | "done"
@@ -136,6 +137,8 @@ export async function runLoop(opts: LoopOptions): Promise<RunOutcome> {
   // Loop detection. Small models repeat a useless action indefinitely, which on
   // a wall like a sign-in page looks locally reasonable every single time.
   const recent: string[] = [];
+  /** Which element is which across steps, since the model's numbers are reassigned each read. */
+  const tracker = new SlotTracker();
   let handedOffFor = "";
   /** One nudge per stuck signature before the run is handed over. */
   let nudgedFor = "";
@@ -266,12 +269,13 @@ export async function runLoop(opts: LoopOptions): Promise<RunOutcome> {
     }
     if (opts.signal.aborted) return finish("stopped");
     opts.onStepStart(n, page);
+    const slots = tracker.observe(page);
 
     // No-op detection. An action that left the URL, the scroll position and the
     // whole element list untouched did nothing, and the model has no way to
     // know that — it is shown a page, not a diff. Told plainly, it moves on;
     // left to infer it, it repeats the same click until the step cap.
-    const print = fingerprint(page);
+    const print = fingerprint(page, slots);
     // Never over the top of a correction the last step wrote: that one names a
     // specific element and is more use than this one's general observation.
     if (lastDid && print === lastPrint && !correction) {
@@ -394,9 +398,11 @@ export async function runLoop(opts: LoopOptions): Promise<RunOutcome> {
     // Ask before acting, so a wall the agent cannot pass is handed over rather
     // than hammered at until the step cap.
     const wall = opts.detectWall?.(page) ?? null;
+    // By slot, not number: [7] twice can be two elements, and one element can be
+    // [7] and then [9] once something is inserted above it.
+    const element = slotOfIndex(page, slots, action.index) ?? action.index ?? "";
     const signature =
-      `${page.url}|${page.viewport.scrollY}|${action.action}` +
-      `|${action.index ?? ""}|${action.value ?? ""}`;
+      `${page.url}|${page.viewport.scrollY}|${action.action}|${element}|${action.value ?? ""}`;
     // Only actions that touch the page take part in loop detection. Repeating
     // `done` or `extract` is a different problem with its own handling below,
     // and counting it here hands the run over instead of answering it.
@@ -677,13 +683,18 @@ function failureFor(err: ProviderError): string {
  * What a page looks like, for telling "nothing happened" from "something did".
  *
  * Labels rather than a count: a search that replaces ten results with ten
- * different ones has the same length and a completely different page.
+ * different ones has the same length and a completely different page. Slots
+ * rather than positions, so an identical re-render reads as unchanged. And
+ * state and text too: ticking a checkbox changes only its note, and a search
+ * that fills a results panel may change only the page text.
  */
-function fingerprint(page: PageIndex): string {
+function fingerprint(page: PageIndex, slots: string[]): string {
+  const slotOf = new Map(page.descriptors.map((d, k) => [d.i, slots[k]]));
   return [
     page.url,
     page.viewport.scrollY,
-    page.elements.map((e) => `${e.role}:${e.label}`).join("|"),
+    page.elements.map((e) => `${slotOf.get(e.i) ?? ""}:${e.role}:${e.label}:${e.note}`).join("|"),
+    page.text,
   ].join("~");
 }
 

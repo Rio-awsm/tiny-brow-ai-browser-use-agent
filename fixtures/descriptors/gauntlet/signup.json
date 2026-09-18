@@ -1,0 +1,179 @@
+{
+  "url": "gauntlet/signup.html",
+  "elements": [
+    {
+      "i": 0,
+      "tag": "input",
+      "role": "textbox",
+      "label": "username",
+      "x": 430,
+      "y": 153,
+      "w": 446,
+      "h": 35,
+      "inViewport": true,
+      "frame": "",
+      "note": ""
+    },
+    {
+      "i": 1,
+      "tag": "input",
+      "role": "textbox",
+      "label": "password",
+      "x": 430,
+      "y": 227,
+      "w": 446,
+      "h": 35,
+      "inViewport": true,
+      "frame": "",
+      "note": "password"
+    },
+    {
+      "i": 2,
+      "tag": "input",
+      "role": "textbox",
+      "label": "otp",
+      "x": 430,
+      "y": 300,
+      "w": 446,
+      "h": 35,
+      "inViewport": true,
+      "frame": "",
+      "note": ""
+    },
+    {
+      "i": 3,
+      "tag": "a",
+      "role": "link",
+      "label": "Back to Wikipedia",
+      "x": 430,
+      "y": 358,
+      "w": 119,
+      "h": 17,
+      "inViewport": true,
+      "frame": "",
+      "note": ""
+    }
+  ],
+  "descriptors": [
+    {
+      "i": 0,
+      "tag": "input",
+      "role": "textbox",
+      "name": "Username",
+      "nameNorm": "username",
+      "stable": {
+        "name": "username",
+        "type": "text",
+        "id": "u"
+      },
+      "landmarks": [
+        "main"
+      ],
+      "context": {
+        "heading": "Create an account",
+        "headingNorm": "create an account",
+        "item": "",
+        "itemNorm": ""
+      },
+      "geom": {
+        "docX": 0.51,
+        "docY": 0.21,
+        "vpX": 0.51,
+        "vpY": 0.21,
+        "size": "l"
+      },
+      "href": "",
+      "pathNorm": "main>input[1]",
+      "frame": ""
+    },
+    {
+      "i": 1,
+      "tag": "input",
+      "role": "textbox",
+      "name": "Password",
+      "nameNorm": "password",
+      "stable": {
+        "name": "password",
+        "type": "password",
+        "id": "p"
+      },
+      "landmarks": [
+        "main"
+      ],
+      "context": {
+        "heading": "Create an account",
+        "headingNorm": "create an account",
+        "item": "",
+        "itemNorm": ""
+      },
+      "geom": {
+        "docX": 0.51,
+        "docY": 0.31,
+        "vpX": 0.51,
+        "vpY": 0.31,
+        "size": "l"
+      },
+      "href": "",
+      "pathNorm": "main>input[2]",
+      "frame": ""
+    },
+    {
+      "i": 2,
+      "tag": "input",
+      "role": "textbox",
+      "name": "One-time code",
+      "nameNorm": "one-time code",
+      "stable": {
+        "name": "otp",
+        "type": "text",
+        "id": "otp"
+      },
+      "landmarks": [
+        "main"
+      ],
+      "context": {
+        "heading": "Create an account",
+        "headingNorm": "create an account",
+        "item": "",
+        "itemNorm": ""
+      },
+      "geom": {
+        "docX": 0.51,
+        "docY": 0.4,
+        "vpX": 0.51,
+        "vpY": 0.4,
+        "size": "l"
+      },
+      "href": "",
+      "pathNorm": "main>input[3]",
+      "frame": ""
+    },
+    {
+      "i": 3,
+      "tag": "a",
+      "role": "link",
+      "name": "Back to Wikipedia",
+      "nameNorm": "back to wikipedia",
+      "stable": {},
+      "landmarks": [
+        "main"
+      ],
+      "context": {
+        "heading": "Create an account",
+        "headingNorm": "create an account",
+        "item": "",
+        "itemNorm": ""
+      },
+      "geom": {
+        "docX": 0.38,
+        "docY": 0.46,
+        "vpX": 0.38,
+        "vpY": 0.46,
+        "size": "s"
+      },
+      "href": "/gauntlet/",
+      "pathNorm": "main>p>a",
+      "frame": ""
+    }
+  ]
+}

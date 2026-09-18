@@ -186,6 +186,7 @@ export function unreadablePage(url: string, title: string, reason: string): Page
     url,
     title,
     elements: [],
+    descriptors: [],
     totalFound: 0,
     viewport: { w: 0, h: 0, scrollX: 0, scrollY: 0, docH: 0 },
     text: `This page cannot be inspected or clicked. ${reason} The only useful action here is navigate.`,

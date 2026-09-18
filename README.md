@@ -101,6 +101,7 @@ flowchart LR
         L["observe → decide → act"]
         G["safety gate"]
         N["NOTES"]
+        I["identity<br/>slots · matcher"]
     end
 
     subgraph bg["Background worker · a thin relay"]
@@ -110,16 +111,17 @@ flowchart LR
     P["The tab you are on"]
     M["Your endpoint<br/>/chat/completions"]
 
-    L -->|"page index + task"| M
+    L -->|"numbered index + task"| M
     M -->|"one action"| G
     G -->|"allowed"| D
     D -->|"CDP Input events"| P
-    P -->|"elements + text"| L
+    P -->|"elements · descriptors · text"| L
     L --- N
+    L <-->|"which element is which"| I
 
     classDef box fill:#0f172a,stroke:#14b8a6,color:#e2e8f0
     classDef ext fill:#1e293b,stroke:#475569,color:#e2e8f0
-    class L,G,N,D box
+    class L,G,N,D,I box
     class P,M ext
 ```
 
@@ -138,18 +140,65 @@ sequenceDiagram
     participant M as Model
 
     P->>B: index the page
-    B-->>P: 40 elements, viewport text
-    P->>M: system · task · plan · history · notes · page
+    B-->>P: 40 numbered elements · descriptors for every candidate · viewport text
+    P->>P: carry slots over from the last read
+    P->>M: system · task · plan · history · notes · numbered elements · text
     M-->>P: {action, index, value, reason}
-    P->>P: gate · validate index · loop check
+    P->>P: gate · validate index · loop check by slot
     P->>B: Input.dispatchMouseEvent
     B-->>P: settled
 ```
 
 The page is reduced to a numbered list of things that can actually be interacted with —
 visible, hit-testable, not covered by something else — capped at 40, viewport-first.
+Text inside a link is part of that link, not a control of its own: the brackets of a
+Wikipedia citation inherit the link's pointer cursor, and used to be listed as clickable.
 The model picks a number. Nothing about the DOM reaches the model, so nothing about the
 DOM can be hallucinated at it.
+
+### Knowing an element again
+
+The number is only good for one step — the next read renumbers everything. So every
+candidate, not just the forty shown, also gets a **descriptor** that stays in the panel
+and never reaches the model: its accessible name, role, test ids and any id that does
+not look generated, the landmarks around it, the heading above it, the card or row it
+sits in, where a link goes, its position and a normalised DOM path.
+
+```mermaid
+flowchart LR
+    T["recorded descriptor"] --> S{"score every candidate"}
+    S --> O["own<br/>test id · id · name · href"]
+    S --> R["near<br/>landmarks · heading · card"]
+    S --> Q["position<br/>path · order · geometry"]
+    O & R & Q --> A{"anchored by its own evidence,<br/>and no lookalike?"}
+    A -->|"yes, clear lead"| MA["matched"]
+    A -->|"a lookalike ties it"| AM["ambiguous"]
+    A -->|"nothing anchors"| NF["not found"]
+
+    classDef box fill:#0f172a,stroke:#14b8a6,color:#e2e8f0
+    classDef out fill:#1e293b,stroke:#475569,color:#e2e8f0
+    class T,S,O,R,Q,A box
+    class MA,AM,NF out
+```
+
+The [matcher](src/lib/identity/match.ts) answers one of three things and never guesses
+between them. A match needs **its own** evidence: a unique test id, id, name attribute
+or destination, or an equal accessible name. Neighbourhood cannot vouch for an element —
+every link in a paragraph shares one — and **position can rank but never break a tie**:
+duplicate a button and the copy takes the original's place in the DOM; delete a result
+card and the next one slides into its slot. A relabelled button with nothing else to
+identify it comes back *not found*, never as its neighbour.
+
+Within a run this becomes a **slot**: an id [carried](src/lib/identity/slots.ts) from
+step to step, so a button pushed from [1] to [2] by a banner is still the same button to
+the loop breaker, and an identical re-render reads as no change at all.
+
+Every weight was tuned against pages that were changed on purpose: wrappers injected,
+ids and classes regenerated, a banner inserted, labels tweaked, siblings reordered,
+the target deleted or duplicated. Across 889 such cases it makes no wrong matches: it
+finds the element in every wrapper, id, banner and reorder case, and a deleted one is
+reported gone every time. A relabel is only found when the element has an id, test id,
+name or destination to go on; a duplicate comes back ambiguous or not found.
 
 ### Acting like a person
 
@@ -167,7 +216,7 @@ the DOM stable — so a step never reasons about a half-rendered page.
 | | |
 |---|---|
 | **History** | One line per past step. Never a past page state. |
-| **Index** | Only ever the current page, capped at 40 elements. |
+| **Index** | Only ever the current page, capped at 40 elements. Descriptors stay in the panel and cost no tokens. |
 | **Page text** | Centred on the viewport, not sliced from the top of the document. |
 | **NOTES** | The one block allowed to grow: every extracted fact, verbatim. |
 | **System prompt** | Byte-identical on every call, so the provider's prefix cache hits. |
@@ -237,8 +286,8 @@ wrong click thirty times. Tiny answers that in code:
 
 | | |
 |---|---|
-| **Nothing changed** | URL, scroll position and the whole element list are fingerprinted. An action that moved none of them is reported to the model in words — it is shown a page, not a diff. |
-| **Same choice twice** | The element is named and forbidden. |
+| **Nothing changed** | URL, scroll position, page text and every element's state are fingerprinted, so an identical re-render reads as unchanged and a ticked checkbox does not. An action that moved none of them is reported to the model in words — it is shown a page, not a diff. |
+| **Same choice twice** | The element is named and forbidden. Choices are compared by element, not number: numbers are reassigned every read, so a button pushed from [1] to [2] by a banner is still the same button. |
 | **Same choice three times** | Escape, then a click on the backdrop, then a rewritten plan, then it hands the run to you. |
 | **Bad element number** | Re-prompted with the valid range. The retry does not consume a step. |
 | **Off-schema reply** | Retried twice. One bad decode is a provider hiccup, not a failed task. |
@@ -305,7 +354,7 @@ src/
   entrypoints/
     background/       service worker: a message relay, nothing more
       cdp.ts          the DevTools session: attach, detach, lifecycle
-      extract.ts      the injected page indexer
+      extract.ts      the injected page indexer: numbered elements, descriptors, text
       overlay.ts      the injected highlight overlay
       actions.ts      click, type, key, scroll, navigate over CDP Input
       cursor.ts       the injected animated cursor
@@ -323,8 +372,16 @@ src/
       validator.ts    the second opinion
       roles.ts        a route is (base URL, key, model, extra params)
     provider/         the BYOK layer: one implementation, presets as data
+    identity/
+      match.ts        finds a recorded element again: matched, ambiguous, or not found
+      slots.ts        names each element across steps, so a re-render is not a new page
 harness/              the scoring suite: bridge, runner, matrix, report
+fixtures/
+  gauntlet/           the recovery task's cookie banner over a login wall
+  pages/              hand-built shop, form, article, dialog and inbox pages
+  descriptors/        what the indexer records on each, checked against every build
 scripts/              checks, fixtures, token plots, icon generation
+  lib/                headless Chrome over raw CDP, the fixture server, drift mutations
 ```
 
 ## Development
@@ -341,6 +398,11 @@ npm run check          # everything below, in order
 | `check:loop` | The agent loop against a scripted model — no browser, no key, no cost. Fifty-odd cases pinning what it refuses, when it pushes back, what it answers with. |
 | `check:secrets` | No credential can reach the extension bundle. A build-time environment value would be inlined into the published output and shipped to every user. |
 | `check:extractor` | Every injected function is pulled back out of the *built* bundle and run against a stub DOM. Bundler hoisting breaks injected code silently, at runtime, in the page. |
+| `check:descriptors` | Runs the built indexer in headless Chrome over `fixtures/`. Every element's descriptor — accessible name, landmarks, stable attributes, context, geometry, path — must survive a reload byte-identical, resolve the tricky cases correctly, match its snapshot in `fixtures/descriptors/`, and leave the model's index untouched. Needs a local Chrome or Edge (or `CHROME_PATH`). Pass URLs to report on real sites; `--update` rewrites the snapshots after an intended indexer change. |
+| `check:matcher` | The element matcher against those snapshots, no browser. Every element must be found on its own page, come back `not_found` when deleted and `ambiguous` when duplicated — a wrong match is the one unacceptable answer. |
+| `check:drift` | The matcher against pages that changed. Each fixture is mutated in headless Chrome — wrappers injected, ids and classes regenerated, a banner inserted, a label tweaked, siblings reordered, the target deleted or duplicated — and every verdict is scored against the element that is truly there. Zero wrong matches, and over 90% found where the element survives. `--all` covers every element, `--case fixture#k#variant` explains one. |
+| `check:slots` | Slots follow elements, not numbers: a re-render keeps every one, an element inserted above shifts numbers but no slot, and navigating starts over — against the snapshots, then against a real re-render in headless Chrome. This is what lets the loop breaker say "you already tried this element" after the numbers have moved. |
+| `tune:matcher` | Replays recorded drift (`check:drift -- --all --record`) under a sweep of weights and thresholds, so a tuning change is a measured one. Not part of `check`. |
 | `check:chars` | No control characters in source. A backspace byte written where `\b` was meant reads as a word boundary in every editor and matches nothing at runtime. |
 | `verify:tasks` | The task list and its machine-readable twin agree. |
 
@@ -365,7 +427,7 @@ Issues and pull requests are welcome.
 
 ```bash
 npm install
-npm run check     # must pass
+npm run check     # must pass; needs a local Chrome or Edge, or CHROME_PATH
 npm run dev
 ```
 

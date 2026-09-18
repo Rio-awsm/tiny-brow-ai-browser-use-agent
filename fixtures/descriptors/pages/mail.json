@@ -1,0 +1,674 @@
+{
+  "url": "pages/mail.html",
+  "elements": [
+    {
+      "i": 0,
+      "tag": "button",
+      "role": "button",
+      "label": "Compose",
+      "x": 12,
+      "y": 12,
+      "w": 97,
+      "h": 39,
+      "inViewport": true,
+      "frame": "",
+      "note": ""
+    },
+    {
+      "i": 1,
+      "tag": "a",
+      "role": "link",
+      "label": "Inbox 12",
+      "x": 12,
+      "y": 51,
+      "w": 176,
+      "h": 32,
+      "inViewport": true,
+      "frame": "",
+      "note": ""
+    },
+    {
+      "i": 2,
+      "tag": "a",
+      "role": "link",
+      "label": "Starred",
+      "x": 12,
+      "y": 83,
+      "w": 176,
+      "h": 32,
+      "inViewport": true,
+      "frame": "",
+      "note": ""
+    },
+    {
+      "i": 3,
+      "tag": "a",
+      "role": "link",
+      "label": "Sent",
+      "x": 12,
+      "y": 114,
+      "w": 176,
+      "h": 32,
+      "inViewport": true,
+      "frame": "",
+      "note": ""
+    },
+    {
+      "i": 4,
+      "tag": "a",
+      "role": "link",
+      "label": "Drafts 2",
+      "x": 12,
+      "y": 146,
+      "w": 176,
+      "h": 32,
+      "inViewport": true,
+      "frame": "",
+      "note": ""
+    },
+    {
+      "i": 5,
+      "tag": "button",
+      "role": "button",
+      "label": "Archive",
+      "x": 213,
+      "y": 8,
+      "w": 68,
+      "h": 27,
+      "inViewport": true,
+      "frame": "",
+      "note": ""
+    },
+    {
+      "i": 6,
+      "tag": "button",
+      "role": "button",
+      "label": "Delete",
+      "x": 287,
+      "y": 8,
+      "w": 36,
+      "h": 27,
+      "inViewport": true,
+      "frame": "",
+      "note": ""
+    },
+    {
+      "i": 7,
+      "tag": "button",
+      "role": "button",
+      "label": "↻",
+      "x": 329,
+      "y": 8,
+      "w": 34,
+      "h": 28,
+      "inViewport": true,
+      "frame": "",
+      "note": ""
+    },
+    {
+      "i": 8,
+      "tag": "div",
+      "role": "listitem",
+      "label": "☆ Priya Raman Quarterly numbers — draft…",
+      "x": 201,
+      "y": 79,
+      "w": 1079,
+      "h": 41,
+      "inViewport": true,
+      "frame": "",
+      "note": ""
+    },
+    {
+      "i": 9,
+      "tag": "button",
+      "role": "button",
+      "label": "Not starred",
+      "x": 213,
+      "y": 87,
+      "w": 24,
+      "h": 24,
+      "inViewport": true,
+      "frame": "",
+      "note": ""
+    },
+    {
+      "i": 10,
+      "tag": "div",
+      "role": "listitem",
+      "label": "☆ GitHub [tiny-brow] New issue opened 0…",
+      "x": 201,
+      "y": 120,
+      "w": 1079,
+      "h": 41,
+      "inViewport": true,
+      "frame": "",
+      "note": ""
+    },
+    {
+      "i": 11,
+      "tag": "button",
+      "role": "button",
+      "label": "Not starred",
+      "x": 213,
+      "y": 128,
+      "w": 24,
+      "h": 24,
+      "inViewport": true,
+      "frame": "",
+      "note": ""
+    },
+    {
+      "i": 12,
+      "tag": "div",
+      "role": "listitem",
+      "label": "★ IRCTC Booking confirmed: PNR 4521 Yes…",
+      "x": 201,
+      "y": 161,
+      "w": 1079,
+      "h": 41,
+      "inViewport": true,
+      "frame": "",
+      "note": ""
+    },
+    {
+      "i": 13,
+      "tag": "button",
+      "role": "button",
+      "label": "Starred",
+      "x": 213,
+      "y": 169,
+      "w": 24,
+      "h": 24,
+      "inViewport": true,
+      "frame": "",
+      "note": ""
+    },
+    {
+      "i": 14,
+      "tag": "input",
+      "role": "textbox",
+      "label": "Write a reply",
+      "x": 209,
+      "y": 210,
+      "w": 177,
+      "h": 21,
+      "inViewport": true,
+      "frame": "iframe",
+      "note": ""
+    },
+    {
+      "i": 15,
+      "tag": "button",
+      "role": "button",
+      "label": "Send",
+      "x": 390,
+      "y": 210,
+      "w": 47,
+      "h": 21,
+      "inViewport": true,
+      "frame": "iframe",
+      "note": ""
+    }
+  ],
+  "descriptors": [
+    {
+      "i": 0,
+      "tag": "button",
+      "role": "button",
+      "name": "Compose",
+      "nameNorm": "compose",
+      "stable": {
+        "data-test": "compose",
+        "type": "submit"
+      },
+      "landmarks": [
+        "nav:mailboxes"
+      ],
+      "context": {
+        "heading": "",
+        "headingNorm": "",
+        "item": "",
+        "itemNorm": ""
+      },
+      "geom": {
+        "docX": 0.05,
+        "docY": 0.04,
+        "vpX": 0.05,
+        "vpY": 0.04,
+        "size": "m"
+      },
+      "href": "",
+      "pathNorm": "div[1]>button",
+      "frame": ""
+    },
+    {
+      "i": 1,
+      "tag": "a",
+      "role": "link",
+      "name": "Inbox 12",
+      "nameNorm": "inbox",
+      "stable": {},
+      "landmarks": [
+        "nav:mailboxes"
+      ],
+      "context": {
+        "heading": "",
+        "headingNorm": "",
+        "item": "",
+        "itemNorm": ""
+      },
+      "geom": {
+        "docX": 0.08,
+        "docY": 0.08,
+        "vpX": 0.08,
+        "vpY": 0.08,
+        "size": "m"
+      },
+      "href": "/pages/mail.html#inbox",
+      "pathNorm": "div[1]>a[1]",
+      "frame": ""
+    },
+    {
+      "i": 2,
+      "tag": "a",
+      "role": "link",
+      "name": "Starred",
+      "nameNorm": "starred",
+      "stable": {},
+      "landmarks": [
+        "nav:mailboxes"
+      ],
+      "context": {
+        "heading": "",
+        "headingNorm": "",
+        "item": "",
+        "itemNorm": ""
+      },
+      "geom": {
+        "docX": 0.08,
+        "docY": 0.12,
+        "vpX": 0.08,
+        "vpY": 0.12,
+        "size": "m"
+      },
+      "href": "/pages/mail.html#starred",
+      "pathNorm": "div[1]>a[2]",
+      "frame": ""
+    },
+    {
+      "i": 3,
+      "tag": "a",
+      "role": "link",
+      "name": "Sent",
+      "nameNorm": "sent",
+      "stable": {},
+      "landmarks": [
+        "nav:mailboxes"
+      ],
+      "context": {
+        "heading": "",
+        "headingNorm": "",
+        "item": "",
+        "itemNorm": ""
+      },
+      "geom": {
+        "docX": 0.08,
+        "docY": 0.16,
+        "vpX": 0.08,
+        "vpY": 0.16,
+        "size": "m"
+      },
+      "href": "/pages/mail.html#sent",
+      "pathNorm": "div[1]>a[3]",
+      "frame": ""
+    },
+    {
+      "i": 4,
+      "tag": "a",
+      "role": "link",
+      "name": "Drafts 2",
+      "nameNorm": "drafts",
+      "stable": {},
+      "landmarks": [
+        "nav:mailboxes"
+      ],
+      "context": {
+        "heading": "",
+        "headingNorm": "",
+        "item": "",
+        "itemNorm": ""
+      },
+      "geom": {
+        "docX": 0.08,
+        "docY": 0.2,
+        "vpX": 0.08,
+        "vpY": 0.2,
+        "size": "m"
+      },
+      "href": "/pages/mail.html#drafts",
+      "pathNorm": "div[1]>a[4]",
+      "frame": ""
+    },
+    {
+      "i": 5,
+      "tag": "button",
+      "role": "button",
+      "name": "Archive",
+      "nameNorm": "archive",
+      "stable": {
+        "data-testid": "archive",
+        "type": "submit"
+      },
+      "landmarks": [
+        "main"
+      ],
+      "context": {
+        "heading": "",
+        "headingNorm": "",
+        "item": "",
+        "itemNorm": ""
+      },
+      "geom": {
+        "docX": 0.19,
+        "docY": 0.03,
+        "vpX": 0.19,
+        "vpY": 0.03,
+        "size": "s"
+      },
+      "href": "",
+      "pathNorm": "div[2]>div[1]>mail-toolbar>div>button[1]",
+      "frame": ""
+    },
+    {
+      "i": 6,
+      "tag": "button",
+      "role": "button",
+      "name": "Delete",
+      "nameNorm": "delete",
+      "stable": {
+        "type": "submit"
+      },
+      "landmarks": [
+        "main"
+      ],
+      "context": {
+        "heading": "",
+        "headingNorm": "",
+        "item": "",
+        "itemNorm": ""
+      },
+      "geom": {
+        "docX": 0.24,
+        "docY": 0.03,
+        "vpX": 0.24,
+        "vpY": 0.03,
+        "size": "s"
+      },
+      "href": "",
+      "pathNorm": "div[2]>div[1]>mail-toolbar>div>button[2]",
+      "frame": ""
+    },
+    {
+      "i": 7,
+      "tag": "button",
+      "role": "button",
+      "name": "Refresh",
+      "nameNorm": "refresh",
+      "stable": {
+        "type": "submit"
+      },
+      "landmarks": [
+        "main"
+      ],
+      "context": {
+        "heading": "",
+        "headingNorm": "",
+        "item": "",
+        "itemNorm": ""
+      },
+      "geom": {
+        "docX": 0.27,
+        "docY": 0.03,
+        "vpX": 0.27,
+        "vpY": 0.03,
+        "size": "s"
+      },
+      "href": "",
+      "pathNorm": "div[2]>div[1]>mail-toolbar>div>button[3]",
+      "frame": ""
+    },
+    {
+      "i": 8,
+      "tag": "div",
+      "role": "listitem",
+      "name": "☆ Priya Raman Quarterly numbers — draft attached 10:42",
+      "nameNorm": "☆ priya raman quarterly numbers — draft attached 10:42",
+      "stable": {
+        "data-qa": "thread"
+      },
+      "landmarks": [
+        "main"
+      ],
+      "context": {
+        "heading": "Primary",
+        "headingNorm": "primary",
+        "item": "",
+        "itemNorm": ""
+      },
+      "geom": {
+        "docX": 0.58,
+        "docY": 0.12,
+        "vpX": 0.58,
+        "vpY": 0.12,
+        "size": "xl"
+      },
+      "href": "",
+      "pathNorm": "div[2]>div[2]>div[1]",
+      "frame": ""
+    },
+    {
+      "i": 9,
+      "tag": "button",
+      "role": "button",
+      "name": "Not starred",
+      "nameNorm": "not starred",
+      "stable": {
+        "type": "submit"
+      },
+      "landmarks": [
+        "main"
+      ],
+      "context": {
+        "heading": "Primary",
+        "headingNorm": "primary",
+        "item": "☆ Priya Raman Quarterly numbers — draft attached 10:42",
+        "itemNorm": "☆ priya raman quarterly numbers — draft attached 10:42"
+      },
+      "geom": {
+        "docX": 0.18,
+        "docY": 0.12,
+        "vpX": 0.18,
+        "vpY": 0.12,
+        "size": "s"
+      },
+      "href": "",
+      "pathNorm": "div[2]>div[2]>div[1]>button",
+      "frame": ""
+    },
+    {
+      "i": 10,
+      "tag": "div",
+      "role": "listitem",
+      "name": "☆ GitHub [tiny-brow] New issue opened 09:15",
+      "nameNorm": "☆ github [tiny-brow] new issue opened 09:15",
+      "stable": {
+        "data-qa": "thread"
+      },
+      "landmarks": [
+        "main"
+      ],
+      "context": {
+        "heading": "Primary",
+        "headingNorm": "primary",
+        "item": "",
+        "itemNorm": ""
+      },
+      "geom": {
+        "docX": 0.58,
+        "docY": 0.18,
+        "vpX": 0.58,
+        "vpY": 0.18,
+        "size": "xl"
+      },
+      "href": "",
+      "pathNorm": "div[2]>div[2]>div[2]",
+      "frame": ""
+    },
+    {
+      "i": 11,
+      "tag": "button",
+      "role": "button",
+      "name": "Not starred",
+      "nameNorm": "not starred",
+      "stable": {
+        "type": "submit"
+      },
+      "landmarks": [
+        "main"
+      ],
+      "context": {
+        "heading": "Primary",
+        "headingNorm": "primary",
+        "item": "☆ GitHub [tiny-brow] New issue opened 09:15",
+        "itemNorm": "☆ github [tiny-brow] new issue opened 09:15"
+      },
+      "geom": {
+        "docX": 0.18,
+        "docY": 0.18,
+        "vpX": 0.18,
+        "vpY": 0.18,
+        "size": "s"
+      },
+      "href": "",
+      "pathNorm": "div[2]>div[2]>div[2]>button",
+      "frame": ""
+    },
+    {
+      "i": 12,
+      "tag": "div",
+      "role": "listitem",
+      "name": "★ IRCTC Booking confirmed: PNR 4521 Yesterday",
+      "nameNorm": "★ irctc booking confirmed: pnr 4521 yesterday",
+      "stable": {
+        "data-qa": "thread"
+      },
+      "landmarks": [
+        "main"
+      ],
+      "context": {
+        "heading": "Primary",
+        "headingNorm": "primary",
+        "item": "",
+        "itemNorm": ""
+      },
+      "geom": {
+        "docX": 0.58,
+        "docY": 0.23,
+        "vpX": 0.58,
+        "vpY": 0.23,
+        "size": "xl"
+      },
+      "href": "",
+      "pathNorm": "div[2]>div[2]>div[3]",
+      "frame": ""
+    },
+    {
+      "i": 13,
+      "tag": "button",
+      "role": "button",
+      "name": "Starred",
+      "nameNorm": "starred",
+      "stable": {
+        "type": "submit"
+      },
+      "landmarks": [
+        "main"
+      ],
+      "context": {
+        "heading": "Primary",
+        "headingNorm": "primary",
+        "item": "★ IRCTC Booking confirmed: PNR 4521 Yesterday",
+        "itemNorm": "★ irctc booking confirmed: pnr 4521 yesterday"
+      },
+      "geom": {
+        "docX": 0.18,
+        "docY": 0.23,
+        "vpX": 0.18,
+        "vpY": 0.23,
+        "size": "s"
+      },
+      "href": "",
+      "pathNorm": "div[2]>div[2]>div[3]>button",
+      "frame": ""
+    },
+    {
+      "i": 14,
+      "tag": "input",
+      "role": "textbox",
+      "name": "Write a reply",
+      "nameNorm": "write a reply",
+      "stable": {
+        "name": "reply",
+        "type": "text"
+      },
+      "landmarks": [
+        "form:quick reply"
+      ],
+      "context": {
+        "heading": "",
+        "headingNorm": "",
+        "item": "",
+        "itemNorm": ""
+      },
+      "geom": {
+        "docX": 0.23,
+        "docY": 0.28,
+        "vpX": 0.23,
+        "vpY": 0.28,
+        "size": "m"
+      },
+      "href": "",
+      "pathNorm": "form>input",
+      "frame": "iframe"
+    },
+    {
+      "i": 15,
+      "tag": "button",
+      "role": "button",
+      "name": "Send",
+      "nameNorm": "send",
+      "stable": {
+        "type": "submit"
+      },
+      "landmarks": [
+        "form:quick reply"
+      ],
+      "context": {
+        "heading": "",
+        "headingNorm": "",
+        "item": "",
+        "itemNorm": ""
+      },
+      "geom": {
+        "docX": 0.32,
+        "docY": 0.28,
+        "vpX": 0.32,
+        "vpY": 0.28,
+        "size": "s"
+      },
+      "href": "",
+      "pathNorm": "form>button",
+      "frame": "iframe"
+    }
+  ]
+}
