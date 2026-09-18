@@ -19,7 +19,7 @@
     "typecheck:node": "tsc -p tsconfig.node.json",
     "typecheck:ext": "wxt prepare && tsc --noEmit",
     "typecheck": "npm run typecheck:node && npm run typecheck:ext",
-    "check": "npm run typecheck && npm run verify:tasks && npm run check:chars && npm run check:loop && npm run check:matcher && npm run build && npm run check:secrets && npm run check:extractor && npm run check:descriptors && npm run check:drift",
+    "check": "npm run typecheck && npm run verify:tasks && npm run check:chars && npm run check:loop && npm run check:matcher && npm run build && npm run check:secrets && npm run check:extractor && npm run check:descriptors && npm run check:drift && npm run check:slots",
     "icons": "tsx scripts/make-icons.ts",
     "check:extractor": "tsx scripts/check-extractor.ts",
     "check:descriptors": "tsx scripts/check-descriptors.ts",

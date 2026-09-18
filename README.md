@@ -237,8 +237,8 @@ wrong click thirty times. Tiny answers that in code:
 
 | | |
 |---|---|
-| **Nothing changed** | URL, scroll position and the whole element list are fingerprinted. An action that moved none of them is reported to the model in words — it is shown a page, not a diff. |
-| **Same choice twice** | The element is named and forbidden. |
+| **Nothing changed** | URL, scroll position, page text and every element's state are fingerprinted, so an identical re-render reads as unchanged and a ticked checkbox does not. An action that moved none of them is reported to the model in words — it is shown a page, not a diff. |
+| **Same choice twice** | The element is named and forbidden. Choices are compared by element, not number: numbers are reassigned every read, so a button pushed from [1] to [2] by a banner is still the same button. |
 | **Same choice three times** | Escape, then a click on the backdrop, then a rewritten plan, then it hands the run to you. |
 | **Bad element number** | Re-prompted with the valid range. The retry does not consume a step. |
 | **Off-schema reply** | Retried twice. One bad decode is a provider hiccup, not a failed task. |
@@ -325,6 +325,7 @@ src/
     provider/         the BYOK layer: one implementation, presets as data
     identity/
       match.ts        finds a recorded element again: matched, ambiguous, or not found
+      slots.ts        names each element across steps, so a re-render is not a new page
 harness/              the scoring suite: bridge, runner, matrix, report
 scripts/              checks, fixtures, token plots, icon generation
 ```
@@ -346,6 +347,7 @@ npm run check          # everything below, in order
 | `check:descriptors` | Runs the built indexer in headless Chrome over `fixtures/`. Every element's descriptor — accessible name, landmarks, stable attributes, context, geometry, path — must survive a reload byte-identical, resolve the tricky cases correctly, match its snapshot in `fixtures/descriptors/`, and leave the model's index untouched. Needs a local Chrome or Edge (or `CHROME_PATH`). Pass URLs to report on real sites; `--update` rewrites the snapshots after an intended indexer change. |
 | `check:matcher` | The element matcher against those snapshots, no browser. Every element must be found on its own page, come back `not_found` when deleted and `ambiguous` when duplicated — a wrong match is the one unacceptable answer. |
 | `check:drift` | The matcher against pages that changed. Each fixture is mutated in headless Chrome — wrappers injected, ids and classes regenerated, a banner inserted, a label tweaked, siblings reordered, the target deleted or duplicated — and every verdict is scored against the element that is truly there. Zero wrong matches, and over 90% found where the element survives. `--all` covers every element, `--case fixture#k#variant` explains one. |
+| `check:slots` | Slots follow elements, not numbers: a re-render keeps every one, an element inserted above shifts numbers but no slot, and navigating starts over — against the snapshots, then against a real re-render in headless Chrome. This is what lets the loop breaker say "you already tried this element" after the numbers have moved. |
 | `tune:matcher` | Replays recorded drift (`check:drift -- --all --record`) under a sweep of weights and thresholds, so a tuning change is a measured one. Not part of `check`. |
 | `check:chars` | No control characters in source. A backspace byte written where `\b` was meant reads as a word boundary in every editor and matches nothing at runtime. |
 | `verify:tasks` | The task list and its machine-readable twin agree. |
